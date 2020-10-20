@@ -1,7 +1,7 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
-//apply plugin: 'com.novoda.bintray-release'
+apply plugin: 'com.github.panpf.bintray-publish'
 
 android {
     compileSdkVersion COMPILE_SDK_VERSION
@@ -31,16 +31,16 @@ android {
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    api fileTree(dir: 'libs', include: ['*.jar'])
     api 'org.web3j:core:4.6.0-android'
     api 'com.github.bitcoinj:bitcoinj:0.15.8'
 }
 
-//publish {
-//    userOrg = 'scene'
-//    groupId = 'wiki.scene.tab'
-//    artifactId = 'tabLayout'
-//    publishVersion = '1.0.0'
-//    desc = 'ETH钱包核心代码'
-////    website = 'https://github.com/aLittleGreens/NettyDemo'
-//}
+publish {
+    userOrg = 'scene'
+    groupId = 'wiki.scene.eth.wallet'
+    artifactId = 'EthWalletCore'
+    publishVersion = '1.0.0'
+    desc = 'ETH wallet base core'
+    website = 'https://github.com/sceneren/EthWallet'
+}
