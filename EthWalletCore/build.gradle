@@ -1,0 +1,46 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
+//apply plugin: 'com.novoda.bintray-release'
+
+android {
+    compileSdkVersion COMPILE_SDK_VERSION
+    defaultConfig {
+        minSdkVersion MIN_SDK_VERSION
+        targetSdkVersion TARGET_SDK_VERSION
+        versionCode VERSION_CODE
+        versionName VERSION_NAME
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    lintOptions {
+        abortOnError false
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    api 'org.web3j:core:4.6.0-android'
+    api 'com.github.bitcoinj:bitcoinj:0.15.8'
+}
+
+//publish {
+//    userOrg = 'scene'
+//    groupId = 'wiki.scene.tab'
+//    artifactId = 'tabLayout'
+//    publishVersion = '1.0.0'
+//    desc = 'ETH钱包核心代码'
+////    website = 'https://github.com/aLittleGreens/NettyDemo'
+//}

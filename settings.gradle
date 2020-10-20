@@ -1,0 +1,3 @@
+include ':EthWalletCore'
+include ':app'
+rootProject.name = "EthWallet"
