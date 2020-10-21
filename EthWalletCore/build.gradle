@@ -32,8 +32,15 @@ android {
 
 dependencies {
     api fileTree(dir: 'libs', include: ['*.jar'])
+    //noinspection GradleDependency
     api 'org.web3j:core:4.6.0-android'
-    api 'com.github.bitcoinj:bitcoinj:0.15.8'
+    api 'io.github.novacrypto:BIP32:2019.01.27'
+    api 'io.github.novacrypto:BIP39:2019.01.27'
+    api 'io.github.novacrypto:BIP44:2019.01.27'
+
+    api "io.reactivex.rxjava2:rxjava:2.2.20"
+    api 'io.reactivex.rxjava2:rxandroid:2.1.1'
+    implementation 'com.hjq:xxpermissions:8.8'
 }
 
 publish {
