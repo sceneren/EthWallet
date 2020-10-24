@@ -6,7 +6,8 @@ import org.consenlabs.tokencore.wallet.Wallet
 import org.consenlabs.tokencore.wallet.WalletManager
 import org.consenlabs.tokencore.wallet.model.ChainType
 import org.consenlabs.tokencore.wallet.model.Metadata
-import org.consenlabs.tokencore.wallet.model.Network
+import wiki.scene.eth.wallet.core.config.WalletConfig
+import wiki.scene.eth.wallet.core.config.WalletType
 import wiki.scene.eth.wallet.core.exception.WalletException
 import wiki.scene.eth.wallet.core.exception.WalletExceptionCode
 import wiki.scene.eth.wallet.core.ext.changeNewThread
@@ -23,12 +24,10 @@ import wiki.scene.eth.wallet.core.ext.changeNewThread
  */
 object EthWalletUtils {
 
-    private const val ETH_NET_WORK = Network.MAINNET
-
-    private fun getIdentity(): Observable<Identity> {
+    private fun getIdentity(walletType: WalletType): Observable<Identity> {
         return Observable.create<Identity> {
             if (Identity.getCurrentIdentity() == null) {
-                val identity = Identity.createIdentity("Identity", "", "", ETH_NET_WORK, Metadata.P2WPKH)
+                val identity = Identity.createIdentity(walletType.name, "", "", WalletConfig.ETH_NET_WORK, Metadata.P2WPKH)
                 //删除默认生成的钱包
                 identity.wallets.forEach { wallet ->
                     WalletManager.removeWallet(wallet.id, "")
@@ -37,15 +36,6 @@ object EthWalletUtils {
             } else {
                 it.onNext(Identity.currentIdentity)
             }
-        }.changeNewThread()
-    }
-
-    /**
-     * 创建助记词
-     */
-    fun createMnemonic(): Observable<MutableList<String>> {
-        return Observable.create<MutableList<String>> {
-            it.onNext(MnemonicUtil.randomMnemonicCodes())
         }.changeNewThread()
     }
 
@@ -69,8 +59,8 @@ object EthWalletUtils {
      * @param walletName 钱包名称
      * @param walletPassword 钱包密码
      */
-    fun createEthWallet(walletName: String, walletPassword: String): Observable<Wallet> {
-        return getIdentity().flatMap<Wallet> {
+    fun createEthWallet(walletType: WalletType, walletName: String, walletPassword: String): Observable<Wallet> {
+        return getIdentity(walletType).flatMap {
             val wallet = it.deriveWallets(arrayListOf(ChainType.ETHEREUM), walletPassword)[0]
             wallet.setAccountName(walletName)
             return@flatMap Observable.just(wallet)
@@ -89,6 +79,63 @@ object EthWalletUtils {
             val mnemonicList = mnemonic.mnemonic.split(" ").toMutableList()
             it.onNext(mnemonicList)
         }.changeNewThread()
+    }
+
+
+    /**
+     * 获取钱包列表
+     * @param walletType 钱包类型
+     */
+    fun getWalletList(walletType: WalletType): Observable<MutableList<Wallet>> {
+        return getIdentity(walletType).flatMap {
+            return@flatMap Observable.just(it.wallets)
+        }
+    }
+
+    /**
+     * 根据助记词导入钱包
+     * @param walletType 钱包类型
+     * @param mnemonic 助记词
+     * @param walletName 钱包名称
+     * @param walletPassword 钱包密码
+     */
+    fun importWalletByMnemonic(walletType: WalletType, mnemonic: String, walletName: String, walletPassword: String): Observable<Wallet> {
+        return getIdentity(walletType)
+                .flatMap {
+                    val mnemonicList = mnemonic.split(" ").toMutableList()
+                    if (mnemonicList.size != 12) {
+                        throw WalletException(WalletExceptionCode.ERROR_MNEMONIC)
+                    } else {
+                        val metadata = Metadata()
+                        metadata.source = Metadata.FROM_MNEMONIC
+                        metadata.network = WalletConfig.ETH_NET_WORK
+                        metadata.segWit = Metadata.P2WPKH
+                        val wallet = WalletManager.importWalletFromMnemonic(metadata, mnemonic, "m/44'/60'/0'/0/0", walletPassword, true)
+                        wallet.setAccountName(walletName)
+                        return@flatMap Observable.just(wallet)
+                    }
+                }.changeNewThread()
+    }
+
+    /**
+     * 根据私钥导入钱包
+     *
+     * @param walletType 钱包类型
+     * @param privateKey 私钥
+     * @param walletName 钱包名称
+     * @param walletPassword 钱包密码
+     */
+    fun importWalletByPrivateKey(walletType: WalletType, privateKey: String, walletName: String, walletPassword: String): Observable<Wallet> {
+        return getIdentity(walletType)
+                .flatMap {
+                    val metadata = Metadata()
+                    metadata.source = Metadata.FROM_MNEMONIC
+                    metadata.network = WalletConfig.ETH_NET_WORK
+                    metadata.segWit = Metadata.P2WPKH
+                    val wallet = WalletManager.importWalletFromPrivateKey(metadata,  privateKey, walletPassword, true)
+                    wallet.setAccountName(walletName)
+                    return@flatMap Observable.just(wallet)
+                }.changeNewThread()
     }
 
 }
