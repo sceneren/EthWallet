@@ -43,12 +43,21 @@ object EthWalletUtils {
      * 是否创建钱包
      */
     fun hasWallet(): Observable<Boolean> {
-        return getIdentity(WalletType.ETH_WALLET_TYPE_SET)
-                .flatMap {
-                    return@flatMap Observable.just(it.wallets)
-                }
-                .zipWith(getIdentity(WalletType.ETH_WALLET_TYPE_ETH), { t, u -> (t.size + u.wallets.size) > 0 })
-                .changeNewThread()
+        return getWalletList().flatMap {
+            return@flatMap Observable.just(it.size != 0)
+        }
+    }
+
+    /**
+     * 获取所以的钱包列表
+     */
+    fun getWalletList(): Observable<MutableList<Wallet>> {
+        return Observable.zip(getIdentity(WalletType.ETH_WALLET_TYPE_SET), getIdentity(WalletType.ETH_WALLET_TYPE_ETH), { setIdentity, ethIdentity ->
+            val setWalletList = setIdentity.wallets.toMutableList()
+            val ethWalletList = ethIdentity.wallets.toMutableList()
+            setWalletList.addAll(ethWalletList)
+            return@zip setWalletList
+        }).changeNewThread()
     }
 
     /**
@@ -98,7 +107,7 @@ object EthWalletUtils {
      * 获取钱包列表
      * @param walletType 钱包类型
      */
-    fun getWalletList(walletType: WalletType): Observable<MutableList<Wallet>> {
+    fun getWalletListByType(walletType: WalletType): Observable<MutableList<Wallet>> {
         return getIdentity(walletType).flatMap {
             return@flatMap Observable.just(it.wallets)
         }
