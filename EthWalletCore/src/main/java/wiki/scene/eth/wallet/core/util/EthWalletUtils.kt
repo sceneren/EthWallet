@@ -40,6 +40,18 @@ object EthWalletUtils {
     }
 
     /**
+     * 是否创建钱包
+     */
+    fun hasWallet(): Observable<Boolean> {
+        return getIdentity(WalletType.ETH_WALLET_TYPE_SET)
+                .flatMap {
+                    return@flatMap Observable.just(it.wallets)
+                }
+                .zipWith(getIdentity(WalletType.ETH_WALLET_TYPE_ETH), { t, u -> (t.size + u.wallets.size) > 0 })
+                .changeNewThread()
+    }
+
+    /**
      * 校验助记词
      */
     fun veryMnemonic(inputMnemonicList: MutableList<String>, mnemonicList: MutableList<String>): Observable<Boolean> {
@@ -132,7 +144,7 @@ object EthWalletUtils {
                     metadata.source = Metadata.FROM_MNEMONIC
                     metadata.network = WalletConfig.ETH_NET_WORK
                     metadata.segWit = Metadata.P2WPKH
-                    val wallet = WalletManager.importWalletFromPrivateKey(metadata,  privateKey, walletPassword, true)
+                    val wallet = WalletManager.importWalletFromPrivateKey(metadata, privateKey, walletPassword, true)
                     wallet.setAccountName(walletName)
                     return@flatMap Observable.just(wallet)
                 }.changeNewThread()
