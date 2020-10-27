@@ -1,8 +1,8 @@
 package wiki.scene.eth.wallet.core.util
 
 import io.reactivex.Observable
+import org.consenlabs.tokencore.foundation.utils.MnemonicUtil
 import org.consenlabs.tokencore.wallet.Identity
-import org.consenlabs.tokencore.wallet.Wallet
 import org.consenlabs.tokencore.wallet.WalletManager
 import org.consenlabs.tokencore.wallet.model.ChainType
 import org.consenlabs.tokencore.wallet.model.Metadata
@@ -58,10 +58,10 @@ object EthWalletUtils {
             val setWalletList = setIdentity.wallets.toMutableList()
             val ethWalletList = ethIdentity.wallets.toMutableList()
             setWalletList.forEach {
-                myWalletList.add(MyWallet(it, WalletType.ETH_WALLET_TYPE_SET))
+                myWalletList.add(MyWallet(it, WalletType.ETH_WALLET_TYPE_SET, ""))
             }
             ethWalletList.forEach {
-                myWalletList.add(MyWallet(it, WalletType.ETH_WALLET_TYPE_ETH))
+                myWalletList.add(MyWallet(it, WalletType.ETH_WALLET_TYPE_ETH, ""))
             }
             return@zip myWalletList
         }).changeNewThread()
@@ -88,12 +88,14 @@ object EthWalletUtils {
      * @param walletPassword 钱包密码
      */
     fun createEthWallet(walletType: WalletType, walletName: String, walletPassword: String): Observable<MyWallet> {
-        return getIdentity(walletType).flatMap {
-            val wallet = it.deriveWallets(arrayListOf(ChainType.ETHEREUM), walletPassword)[0]
-            wallet.setAccountName(walletName)
-            val myWallet = MyWallet(wallet, walletType)
-            return@flatMap Observable.just(myWallet)
-        }.changeNewThread()
+
+        return Observable.just(MnemonicUtil.randomMnemonicCodes())
+                .flatMap { Observable.just(it.joinToString(" ")) }
+                .flatMap { importWalletByMnemonic(walletType, it, walletName, walletPassword) }
+                .zipWith(getIdentity(walletType), { myWallet, identity ->
+                    identity.addWallet(myWallet.wallet)
+                    myWallet
+                }).changeNewThread()
 
     }
 
@@ -102,7 +104,7 @@ object EthWalletUtils {
      * @param walletId 钱包Id
      * @param  walletPassword 钱包密码
      */
-    fun getCurrentWalletMnemonic(walletId: String, walletPassword: String): Observable<MutableList<String>> {
+    fun getWalletMnemonic(walletId: String, walletPassword: String): Observable<MutableList<String>> {
         return Observable.create<MutableList<String>> {
             val mnemonic = WalletManager.exportMnemonic(walletId, walletPassword)
             val mnemonicList = mnemonic.mnemonic.split(" ").toMutableList()
@@ -119,7 +121,7 @@ object EthWalletUtils {
         return getIdentity(walletType).flatMap {
             val myWalletList = mutableListOf<MyWallet>()
             it.wallets.forEach { wallet ->
-                myWalletList.add(MyWallet(wallet, walletType))
+                myWalletList.add(MyWallet(wallet, walletType, ""))
             }
             return@flatMap Observable.just(myWalletList)
         }
@@ -143,9 +145,9 @@ object EthWalletUtils {
                         metadata.source = Metadata.FROM_MNEMONIC
                         metadata.network = WalletConfig.ETH_NET_WORK
                         metadata.segWit = Metadata.P2WPKH
+                        metadata.chainType = ChainType.ETHEREUM
                         val wallet = WalletManager.importWalletFromMnemonic(metadata, mnemonic, "m/44'/60'/0'/0/0", walletPassword, true)
-                        wallet.setAccountName(walletName)
-                        return@flatMap Observable.just(MyWallet(wallet, walletType))
+                        return@flatMap Observable.just(MyWallet(wallet, walletType, walletName))
                     }
                 }.changeNewThread()
     }
@@ -166,8 +168,7 @@ object EthWalletUtils {
                     metadata.network = WalletConfig.ETH_NET_WORK
                     metadata.segWit = Metadata.P2WPKH
                     val wallet = WalletManager.importWalletFromPrivateKey(metadata, privateKey, walletPassword, true)
-                    wallet.setAccountName(walletName)
-                    return@flatMap Observable.just(MyWallet(wallet, walletType))
+                    return@flatMap Observable.just(MyWallet(wallet, walletType, walletName))
                 }.changeNewThread()
     }
 
