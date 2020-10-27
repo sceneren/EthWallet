@@ -2,8 +2,6 @@ package wiki.scene.eth.wallet.core.util
 
 import io.reactivex.Observable
 import org.consenlabs.tokencore.foundation.utils.MnemonicUtil
-import org.consenlabs.tokencore.wallet.Identity
-import org.consenlabs.tokencore.wallet.WalletManager
 import org.consenlabs.tokencore.wallet.model.ChainType
 import org.consenlabs.tokencore.wallet.model.Metadata
 import wiki.scene.eth.wallet.core.bean.MyWallet
@@ -12,6 +10,8 @@ import wiki.scene.eth.wallet.core.config.WalletType
 import wiki.scene.eth.wallet.core.exception.WalletException
 import wiki.scene.eth.wallet.core.exception.WalletExceptionCode
 import wiki.scene.eth.wallet.core.ext.changeNewThread
+import wiki.scene.eth.wallet.core.room.WalletDatabaseHelper
+import wiki.scene.eth.wallet.core.room.table.MyWalletTable
 
 /**
  *
@@ -29,15 +29,13 @@ object EthWalletUtils {
         return Observable.create<Identity> {
             if (Identity.getCurrentIdentity() == null) {
                 val identity = Identity.createIdentity(walletType.name, "", "", WalletConfig.ETH_NET_WORK, Metadata.P2WPKH)
-                //删除默认生成的钱包
-                identity.wallets.forEach { wallet ->
-                    WalletManager.removeWallet(wallet.id, "")
-                }
                 it.onNext(identity)
             } else {
                 it.onNext(Identity.currentIdentity)
             }
         }.changeNewThread()
+
+
     }
 
     /**
@@ -50,7 +48,7 @@ object EthWalletUtils {
     }
 
     /**
-     * 获取所以的钱包列表
+     * 获取所有的钱包列表
      */
     fun getWalletList(): Observable<MutableList<MyWallet>> {
         return Observable.zip(getIdentity(WalletType.ETH_WALLET_TYPE_SET), getIdentity(WalletType.ETH_WALLET_TYPE_ETH), { setIdentity, ethIdentity ->
@@ -63,6 +61,16 @@ object EthWalletUtils {
             ethWalletList.forEach {
                 myWalletList.add(MyWallet(it, WalletType.ETH_WALLET_TYPE_ETH, ""))
             }
+
+            myWalletList.forEach {
+                val walletTable = WalletDatabaseHelper.getInstance()
+                        .myWalletDao()
+                        .queryWalletById(it.wallet.id)
+                val walletName = walletTable?.walletName ?: ""
+                it.walletName = walletName
+            }
+
+
             return@zip myWalletList
         }).changeNewThread()
     }
@@ -94,7 +102,10 @@ object EthWalletUtils {
                 .flatMap { importWalletByMnemonic(walletType, it, walletName, walletPassword) }
                 .zipWith(getIdentity(walletType), { myWallet, identity ->
                     identity.addWallet(myWallet.wallet)
-                    myWallet
+                    WalletDatabaseHelper.getInstance()
+                            .myWalletDao()
+                            .saveWallet(MyWalletTable(myWallet.wallet.id, walletName))
+                    return@zipWith myWallet
                 }).changeNewThread()
 
     }
@@ -121,7 +132,12 @@ object EthWalletUtils {
         return getIdentity(walletType).flatMap {
             val myWalletList = mutableListOf<MyWallet>()
             it.wallets.forEach { wallet ->
-                myWalletList.add(MyWallet(wallet, walletType, ""))
+                val walletTable = WalletDatabaseHelper.getInstance()
+                        .myWalletDao()
+                        .queryWalletById(wallet.id)
+
+                val walletName = walletTable?.walletName ?: ""
+                myWalletList.add(MyWallet(wallet, walletType, walletName))
             }
             return@flatMap Observable.just(myWalletList)
         }
@@ -147,6 +163,10 @@ object EthWalletUtils {
                         metadata.segWit = Metadata.P2WPKH
                         metadata.chainType = ChainType.ETHEREUM
                         val wallet = WalletManager.importWalletFromMnemonic(metadata, mnemonic, "m/44'/60'/0'/0/0", walletPassword, true)
+                        val walletTable = MyWalletTable(wallet.id, walletName)
+                        WalletDatabaseHelper.getInstance()
+                                .myWalletDao()
+                                .saveWallet(walletTable)
                         return@flatMap Observable.just(MyWallet(wallet, walletType, walletName))
                     }
                 }.changeNewThread()
@@ -168,8 +188,29 @@ object EthWalletUtils {
                     metadata.network = WalletConfig.ETH_NET_WORK
                     metadata.segWit = Metadata.P2WPKH
                     val wallet = WalletManager.importWalletFromPrivateKey(metadata, privateKey, walletPassword, true)
+                    val walletTable = MyWalletTable(wallet.id, walletName)
+                    WalletDatabaseHelper.getInstance()
+                            .myWalletDao()
+                            .saveWallet(walletTable)
                     return@flatMap Observable.just(MyWallet(wallet, walletType, walletName))
                 }.changeNewThread()
+    }
+
+    /**
+     * 删除钱包根据Id
+     */
+    fun deleteWalletById(walletId: String, password: String): Observable<Boolean> {
+        return Observable.create<Boolean> {
+            try {
+                WalletManager.removeWallet(walletId, password)
+                WalletDatabaseHelper.getInstance()
+                        .myWalletDao()
+                        .deleteWalletById(walletId)
+                it.onNext(true)
+            } catch (e: Exception) {
+                it.onError(WalletException(WalletExceptionCode.ERROR_PASSWORD))
+            }
+        }.changeNewThread()
     }
 
 }

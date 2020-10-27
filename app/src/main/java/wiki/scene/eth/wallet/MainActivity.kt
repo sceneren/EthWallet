@@ -6,9 +6,9 @@ import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import kotlinx.android.synthetic.main.activity_main.*
 import org.consenlabs.tokencore.wallet.KeystoreStorage
-import org.consenlabs.tokencore.wallet.WalletManager
 import wiki.scene.eth.wallet.core.config.WalletType
 import wiki.scene.eth.wallet.core.util.EthWalletUtils
+import wiki.scene.eth.wallet.core.util.WalletManager
 import java.io.File
 
 class MainActivity : AppCompatActivity(), KeystoreStorage {
@@ -22,6 +22,7 @@ class MainActivity : AppCompatActivity(), KeystoreStorage {
         getCurrentWallet.setOnClickListener {
             EthWalletUtils.getWalletList()
                     .subscribe {
+                        Log.e("钱包数据", it.size.toString())
                         it.forEach { myWallet ->
                             Log.e("address", myWallet.wallet.address)
                         }
@@ -30,23 +31,21 @@ class MainActivity : AppCompatActivity(), KeystoreStorage {
 
         createWallet.setOnClickListener {
             createWallet()
-
         }
         createMnemonic.setOnClickListener {
-            createMnemonic()
+            EthWalletUtils.getWalletListByType(WalletType.ETH_WALLET_TYPE_ETH)
+                    .subscribe {
+//                        it[0].wallet.setAccountName()
+                        it.forEach { wallet -> Log.e("wallet", wallet.toString()) }
+                    }
         }
     }
 
     @SuppressLint("CheckResult", "SetTextI18n")
     private fun createWallet() {
-        EthWalletUtils.createEthWallet(WalletType.ETH_WALLET_TYPE_SET, "xx", "12345678")
-                .flatMap {
-                    Log.e("xxx11", it.walletType.name)
-                    Log.e("xxx22", it.wallet.address)
-                    EthWalletUtils.getWalletMnemonic(it.wallet.id, "12345678")
-                }
+        EthWalletUtils.createEthWallet(WalletType.ETH_WALLET_TYPE_ETH, "xx", "12345678")
                 .subscribe {
-                    Log.e("xxx33", it.joinToString(" "))
+                    Log.e("xxx33", it.toString())
                 }
 
     }

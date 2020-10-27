@@ -12,4 +12,5 @@ package wiki.scene.eth.wallet.core.exception
  */
 object WalletExceptionCode {
     const val ERROR_MNEMONIC = "8001"
+    const val ERROR_PASSWORD = "8002"
 }
