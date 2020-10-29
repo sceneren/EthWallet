@@ -39,6 +39,13 @@ class MainActivity : AppCompatActivity(), KeystoreStorage {
                         it.forEach { wallet -> Log.e("wallet", wallet.toString()) }
                     }
         }
+
+        btnImportWalletByPrivateKey.setOnClickListener {
+            EthWalletUtils.importWalletByPrivateKey(WalletType.ETH_WALLET_TYPE_ETH, "123126734", "xxx", "11112222")
+                    .subscribe {
+                        Log.e("xx", it.walletName)
+                    }
+        }
     }
 
     @SuppressLint("CheckResult", "SetTextI18n")

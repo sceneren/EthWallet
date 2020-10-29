@@ -11,6 +11,9 @@ package wiki.scene.eth.wallet.core.exception
  * @Version:        1.0.0
  */
 object WalletExceptionCode {
+    const val ERROR_UNKNOWN = "8000"
     const val ERROR_MNEMONIC = "8001"
     const val ERROR_PASSWORD = "8002"
+    const val ERROR_PRIVATE_KEY = "8003"
+    const val ERROR_WALLET_NOT_FOUND = "8004"
 }

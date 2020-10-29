@@ -4,6 +4,7 @@ import io.reactivex.Observable
 import org.consenlabs.tokencore.foundation.utils.MnemonicUtil
 import org.consenlabs.tokencore.wallet.model.ChainType
 import org.consenlabs.tokencore.wallet.model.Metadata
+import org.consenlabs.tokencore.wallet.model.TokenException
 import wiki.scene.eth.wallet.core.bean.MyWallet
 import wiki.scene.eth.wallet.core.config.WalletConfig
 import wiki.scene.eth.wallet.core.config.WalletType
@@ -69,8 +70,6 @@ object EthWalletUtils {
                 val walletName = walletTable?.walletName ?: ""
                 it.walletName = walletName
             }
-
-
             return@zip myWalletList
         }).changeNewThread()
     }
@@ -98,7 +97,13 @@ object EthWalletUtils {
     fun createEthWallet(walletType: WalletType, walletName: String, walletPassword: String): Observable<MyWallet> {
 
         return Observable.just(MnemonicUtil.randomMnemonicCodes())
-                .flatMap { Observable.just(it.joinToString(" ")) }
+                .flatMap {
+                    if (it.size != 12) {
+                        return@flatMap Observable.just(it.joinToString(" "))
+                    } else {
+                        return@flatMap Observable.error(WalletException(WalletExceptionCode.ERROR_MNEMONIC))
+                    }
+                }
                 .flatMap { importWalletByMnemonic(walletType, it, walletName, walletPassword) }
                 .zipWith(getIdentity(walletType), { myWallet, identity ->
                     identity.addWallet(myWallet.wallet)
@@ -117,9 +122,18 @@ object EthWalletUtils {
      */
     fun getWalletMnemonic(walletId: String, walletPassword: String): Observable<MutableList<String>> {
         return Observable.create<MutableList<String>> {
-            val mnemonic = WalletManager.exportMnemonic(walletId, walletPassword)
-            val mnemonicList = mnemonic.mnemonic.split(" ").toMutableList()
-            it.onNext(mnemonicList)
+            try {
+                val mnemonic = WalletManager.exportMnemonic(walletId, walletPassword)
+                val mnemonicList = mnemonic.mnemonic.split(" ").toMutableList()
+                if (mnemonicList.size != 12) {
+                    it.onError(WalletException(WalletExceptionCode.ERROR_MNEMONIC))
+                } else {
+                    it.onNext(mnemonicList)
+                }
+            } catch (e: TokenException) {
+                it.onError(e)
+            }
+
         }.changeNewThread()
     }
 
@@ -130,16 +144,21 @@ object EthWalletUtils {
      */
     fun getWalletListByType(walletType: WalletType): Observable<MutableList<MyWallet>> {
         return getIdentity(walletType).flatMap {
-            val myWalletList = mutableListOf<MyWallet>()
-            it.wallets.forEach { wallet ->
-                val walletTable = WalletDatabaseHelper.getInstance()
-                        .myWalletDao()
-                        .queryWalletById(wallet.id)
+            try {
+                val myWalletList = mutableListOf<MyWallet>()
+                it.wallets.forEach { wallet ->
+                    val walletTable = WalletDatabaseHelper.getInstance()
+                            .myWalletDao()
+                            .queryWalletById(wallet.id)
 
-                val walletName = walletTable?.walletName ?: ""
-                myWalletList.add(MyWallet(wallet, walletType, walletName))
+                    val walletName = walletTable?.walletName ?: ""
+                    myWalletList.add(MyWallet(wallet, walletType, walletName))
+                }
+                return@flatMap Observable.just(myWalletList)
+            } catch (e: TokenException) {
+                return@flatMap Observable.error(e)
             }
-            return@flatMap Observable.just(myWalletList)
+
         }
     }
 
@@ -153,21 +172,25 @@ object EthWalletUtils {
     fun importWalletByMnemonic(walletType: WalletType, mnemonic: String, walletName: String, walletPassword: String): Observable<MyWallet> {
         return getIdentity(walletType)
                 .flatMap {
-                    val mnemonicList = mnemonic.split(" ").toMutableList()
-                    if (mnemonicList.size != 12) {
-                        throw WalletException(WalletExceptionCode.ERROR_MNEMONIC)
-                    } else {
-                        val metadata = Metadata()
-                        metadata.source = Metadata.FROM_MNEMONIC
-                        metadata.network = WalletConfig.ETH_NET_WORK
-                        metadata.segWit = Metadata.P2WPKH
-                        metadata.chainType = ChainType.ETHEREUM
-                        val wallet = WalletManager.importWalletFromMnemonic(metadata, mnemonic, "m/44'/60'/0'/0/0", walletPassword, true)
-                        val walletTable = MyWalletTable(wallet.id, walletName)
-                        WalletDatabaseHelper.getInstance()
-                                .myWalletDao()
-                                .saveWallet(walletTable)
-                        return@flatMap Observable.just(MyWallet(wallet, walletType, walletName))
+                    try {
+                        val mnemonicList = mnemonic.split(" ").toMutableList()
+                        if (mnemonicList.size != 12) {
+                            return@flatMap Observable.error(WalletException(WalletExceptionCode.ERROR_MNEMONIC))
+                        } else {
+                            val metadata = Metadata()
+                            metadata.source = Metadata.FROM_MNEMONIC
+                            metadata.network = WalletConfig.ETH_NET_WORK
+                            metadata.segWit = Metadata.P2WPKH
+                            metadata.chainType = ChainType.ETHEREUM
+                            val wallet = WalletManager.importWalletFromMnemonic(metadata, mnemonic, "m/44'/60'/0'/0/0", walletPassword, true)
+                            val walletTable = MyWalletTable(wallet.id, walletName)
+                            WalletDatabaseHelper.getInstance()
+                                    .myWalletDao()
+                                    .saveWallet(walletTable)
+                            return@flatMap Observable.just(MyWallet(wallet, walletType, walletName))
+                        }
+                    } catch (e: TokenException) {
+                        return@flatMap Observable.error(e)
                     }
                 }.changeNewThread()
     }
@@ -183,16 +206,22 @@ object EthWalletUtils {
     fun importWalletByPrivateKey(walletType: WalletType, privateKey: String, walletName: String, walletPassword: String): Observable<MyWallet> {
         return getIdentity(walletType)
                 .flatMap {
-                    val metadata = Metadata()
-                    metadata.source = Metadata.FROM_MNEMONIC
-                    metadata.network = WalletConfig.ETH_NET_WORK
-                    metadata.segWit = Metadata.P2WPKH
-                    val wallet = WalletManager.importWalletFromPrivateKey(metadata, privateKey, walletPassword, true)
-                    val walletTable = MyWalletTable(wallet.id, walletName)
-                    WalletDatabaseHelper.getInstance()
-                            .myWalletDao()
-                            .saveWallet(walletTable)
-                    return@flatMap Observable.just(MyWallet(wallet, walletType, walletName))
+                    try {
+                        val metadata = Metadata()
+                        metadata.source = Metadata.FROM_MNEMONIC
+                        metadata.network = WalletConfig.ETH_NET_WORK
+                        metadata.segWit = Metadata.P2WPKH
+                        metadata.chainType = ChainType.ETHEREUM
+                        val wallet = WalletManager.importWalletFromPrivateKey(metadata, privateKey, walletPassword, true)
+                        val walletTable = MyWalletTable(wallet.id, walletName)
+                        WalletDatabaseHelper.getInstance()
+                                .myWalletDao()
+                                .saveWallet(walletTable)
+                        return@flatMap Observable.just(MyWallet(wallet, walletType, walletName))
+                    } catch (e: TokenException) {
+                        return@flatMap Observable.error(e)
+                    }
+
                 }.changeNewThread()
     }
 
@@ -207,8 +236,8 @@ object EthWalletUtils {
                         .myWalletDao()
                         .deleteWalletById(walletId)
                 it.onNext(true)
-            } catch (e: Exception) {
-                it.onError(WalletException(WalletExceptionCode.ERROR_PASSWORD))
+            } catch (e: TokenException) {
+                it.onError(e)
             }
         }.changeNewThread()
     }

@@ -30,6 +30,12 @@
         android:layout_height="wrap_content"
         android:text="创建助记词" />
 
+    <Button
+        android:id="@+id/btnImportWalletByPrivateKey"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="根据密钥倒入钱包" />
+
     <TextView
         android:id="@+id/tvResult2"
         android:layout_width="wrap_content"
