@@ -9,6 +9,7 @@ object EthWalletCore {
     fun init(context: Context) {
         this.context = context
         keystoreStorage = KeystoreStorage { context.filesDir }
+        WalletManager.scanWallets()
     }
 
     fun getContext(): Context {

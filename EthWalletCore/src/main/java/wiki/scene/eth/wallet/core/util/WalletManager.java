@@ -52,15 +52,6 @@ public class WalletManager {
     private static Hashtable<String, IMTKeystore> keystoreMap = new Hashtable<>();
     private static final String LOG_TAG = WalletManager.class.getSimpleName();
 
-    public static KeystoreStorage storage;
-//
-//  static {
-//    try {
-//      scanWallets();
-//    } catch (IOException ignored) {
-//    }
-//  }
-
     static Wallet createWallet(IMTKeystore keystore) {
         File file = generateWalletFile(keystore.getId());
         writeToFile(keystore, file);
