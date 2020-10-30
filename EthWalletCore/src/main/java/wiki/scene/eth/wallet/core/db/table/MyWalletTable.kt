@@ -5,11 +5,12 @@ import io.objectbox.annotation.Id
 import io.objectbox.annotation.Index
 
 @Entity
-data class MyWalletTable(
+class MyWalletTable(
         @Index
         val walletId: String = "",
         val walletName: String = ""
-){
-        @Id
-        var id: Long = 0L
+) {
+    @Id
+    var id: Long = 0L
+    var walletDefault: Int = 0//0-不是默认 1-默认
 }

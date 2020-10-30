@@ -16,5 +16,6 @@ import wiki.scene.eth.wallet.core.util.Wallet
 data class MyWallet(
         val wallet: Wallet,
         val walletType: WalletType,
-        var walletName: String = ""
+        var walletName: String = "",
+        var walletDefault: Int = 0
 )

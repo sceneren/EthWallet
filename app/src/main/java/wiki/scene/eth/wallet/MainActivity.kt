@@ -20,9 +20,7 @@ class MainActivity : AppCompatActivity() {
             EthWalletUtils.getWalletList()
                     .subscribe {
                         Log.e("钱包数据", it.size.toString())
-                        it.forEach { myWallet ->
-                            Log.e("address", myWallet.wallet.address)
-                        }
+                        Log.e("address", it.toString())
                     }
         }
 

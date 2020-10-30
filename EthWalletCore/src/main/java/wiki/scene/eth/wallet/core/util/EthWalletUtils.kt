@@ -2,6 +2,7 @@ package wiki.scene.eth.wallet.core.util
 
 import io.reactivex.Flowable
 import io.reactivex.Observable
+import io.reactivex.Observable.*
 import org.consenlabs.tokencore.foundation.utils.MnemonicUtil
 import org.consenlabs.tokencore.wallet.model.ChainType
 import org.consenlabs.tokencore.wallet.model.Metadata
@@ -29,7 +30,7 @@ import wiki.scene.eth.wallet.core.ext.changeIOThread
 object EthWalletUtils {
 
     private fun getIdentity(walletType: WalletType): Observable<Identity> {
-        return Observable.create<Identity> {
+        return create<Identity> {
             if (Identity.getCurrentIdentity() == null) {
                 val identity = Identity.createIdentity(walletType.name, "", "", WalletConfig.ETH_NET_WORK, Metadata.P2WPKH)
                 it.onNext(identity)
@@ -46,7 +47,7 @@ object EthWalletUtils {
      */
     fun hasWallet(): Observable<Boolean> {
         return getWalletList().flatMap {
-            return@flatMap Observable.just(it.size != 0)
+            return@flatMap just(it.size != 0)
         }
     }
 
@@ -54,7 +55,7 @@ object EthWalletUtils {
      * 获取所有的钱包列表
      */
     fun getWalletList(): Observable<MutableList<MyWallet>> {
-        return Observable.zip(getIdentity(WalletType.ETH_WALLET_TYPE_SET), getIdentity(WalletType.ETH_WALLET_TYPE_ETH), { setIdentity, ethIdentity ->
+        return zip(getIdentity(WalletType.ETH_WALLET_TYPE_SET), getIdentity(WalletType.ETH_WALLET_TYPE_ETH), { setIdentity, ethIdentity ->
             val myWalletList = mutableListOf<MyWallet>()
             val setWalletList = setIdentity.wallets.toMutableList()
             val ethWalletList = ethIdentity.wallets.toMutableList()
@@ -72,6 +73,7 @@ object EthWalletUtils {
                         .build()
                         .findFirst()
                 it.walletName = result?.walletName ?: ""
+                it.walletDefault = result?.walletDefault ?: 0
             }
             return@zip myWalletList
         }).changeIOThread()
@@ -81,7 +83,7 @@ object EthWalletUtils {
      * 校验助记词
      */
     fun veryMnemonic(inputMnemonicList: MutableList<String>, mnemonicList: MutableList<String>): Observable<Boolean> {
-        return Observable.create<Boolean> {
+        return create<Boolean> {
             if (inputMnemonicList.size != 12 || mnemonicList.size != 12) {
                 it.onError(WalletException(WalletExceptionCode.ERROR_MNEMONIC))
             } else {
@@ -99,21 +101,20 @@ object EthWalletUtils {
      */
     fun createEthWallet(walletType: WalletType, walletName: String, walletPassword: String): Observable<MyWallet> {
 
-        return Observable.just(MnemonicUtil.randomMnemonicCodes())
+        return just(MnemonicUtil.randomMnemonicCodes())
                 .flatMap {
-                    if (it.size != 12) {
-                        return@flatMap Observable.just(it.joinToString(" "))
+                    if (it.size == 12) {
+                        return@flatMap just(it.joinToString(" "))
                     } else {
-                        return@flatMap Observable.error(WalletException(WalletExceptionCode.ERROR_MNEMONIC))
+                        return@flatMap error(WalletException(WalletExceptionCode.ERROR_MNEMONIC))
                     }
                 }
                 .flatMap { importWalletByMnemonic(walletType, it, walletName, walletPassword) }
                 .zipWith(getIdentity(walletType), { myWallet, identity ->
                     identity.addWallet(myWallet.wallet)
                     val myWalletTable = MyWalletTable(myWallet.wallet.id, walletName)
-                    ObjectBox.getMyWalletTableManager()
-                            .put(myWalletTable)
-
+                    myWalletTable.walletDefault = 1
+                    addDefaultWalletByWallet(myWalletTable)
                     return@zipWith myWallet
                 }).changeIOThread()
 
@@ -125,7 +126,7 @@ object EthWalletUtils {
      * @param  walletPassword 钱包密码
      */
     fun getWalletMnemonic(walletId: String, walletPassword: String): Observable<MutableList<String>> {
-        return Observable.create<MutableList<String>> {
+        return create<MutableList<String>> {
             try {
                 val mnemonic = WalletManager.exportMnemonic(walletId, walletPassword)
                 val mnemonicList = mnemonic.mnemonic.split(" ").toMutableList()
@@ -157,11 +158,12 @@ object EthWalletUtils {
                             .build()
                             .findFirst()
                     val walletName = data?.walletName ?: ""
-                    myWalletList.add(MyWallet(wallet, walletType, walletName))
+                    val walletDefault = data?.walletDefault ?: 0
+                    myWalletList.add(MyWallet(wallet, walletType, walletName, walletDefault))
                 }
-                return@flatMap Observable.just(myWalletList)
+                return@flatMap just(myWalletList)
             } catch (e: TokenException) {
-                return@flatMap Observable.error(e)
+                return@flatMap error(e)
             }
 
         }
@@ -180,7 +182,7 @@ object EthWalletUtils {
                     try {
                         val mnemonicList = mnemonic.split(" ").toMutableList()
                         if (mnemonicList.size != 12) {
-                            return@flatMap Observable.error(WalletException(WalletExceptionCode.ERROR_MNEMONIC))
+                            return@flatMap error(WalletException(WalletExceptionCode.ERROR_MNEMONIC))
                         } else {
                             val metadata = Metadata()
                             metadata.source = Metadata.FROM_MNEMONIC
@@ -189,12 +191,11 @@ object EthWalletUtils {
                             metadata.chainType = ChainType.ETHEREUM
                             val wallet = WalletManager.importWalletFromMnemonic(metadata, mnemonic, "m/44'/60'/0'/0/0", walletPassword, true)
                             val walletTable = MyWalletTable(wallet.id, walletName)
-                            ObjectBox.getMyWalletTableManager()
-                                    .put(walletTable)
-                            return@flatMap Observable.just(MyWallet(wallet, walletType, walletName))
+                            addDefaultWalletByWallet(walletTable)
+                            return@flatMap just(MyWallet(wallet, walletType, walletName, 1))
                         }
                     } catch (e: TokenException) {
-                        return@flatMap Observable.error(e)
+                        return@flatMap error(e)
                     }
                 }.changeIOThread()
     }
@@ -218,11 +219,10 @@ object EthWalletUtils {
                         metadata.chainType = ChainType.ETHEREUM
                         val wallet = WalletManager.importWalletFromPrivateKey(metadata, privateKey, walletPassword, true)
                         val walletTable = MyWalletTable(wallet.id, walletName)
-                        ObjectBox.getMyWalletTableManager()
-                                .put(walletTable)
-                        return@flatMap Observable.just(MyWallet(wallet, walletType, walletName))
+                        addDefaultWalletByWallet(walletTable)
+                        return@flatMap just(MyWallet(wallet, walletType, walletName,1))
                     } catch (e: TokenException) {
-                        return@flatMap Observable.error(e)
+                        return@flatMap error(e)
                     }
 
                 }.changeIOThread()
@@ -243,6 +243,60 @@ object EthWalletUtils {
                     return@flatMap Flowable.just(count > 0)
                 }
 
+    }
+
+    /**
+     * 设置默认钱包
+     * @param walletId 钱包Id
+     */
+    fun setDefaultWalletById(walletId: String): Observable<Boolean> {
+        return create {
+            val oldDefault = ObjectBox.getMyWalletTableManager()
+                    .query()
+                    .equal(MyWalletTable_.walletDefault, 1)
+                    .build()
+                    .findFirst()
+            if (oldDefault != null) {
+                oldDefault.walletDefault = 0
+                ObjectBox.getMyWalletTableManager()
+                        .put(oldDefault)
+            }
+            val data = ObjectBox.getMyWalletTableManager()
+                    .query()
+                    .equal(MyWalletTable_.walletId, walletId)
+                    .build()
+                    .findFirst()
+            if (data != null) {
+                val count = ObjectBox.getMyWalletTableManager()
+                        .put(data)
+                it.onNext(count > 0)
+            } else {
+                it.onNext(false)
+            }
+        }
+
+    }
+
+    /**
+     * 添加默认钱包
+     */
+    fun addDefaultWalletByWallet(walletTable: MyWalletTable): Observable<Boolean> {
+        return create {
+            val oldDefault = ObjectBox.getMyWalletTableManager()
+                    .query()
+                    .equal(MyWalletTable_.walletDefault, 1)
+                    .build()
+                    .findFirst()
+            if (oldDefault != null) {
+                oldDefault.walletDefault = 0
+                ObjectBox.getMyWalletTableManager()
+                        .put(oldDefault)
+            }
+            walletTable.walletDefault = 1
+            val count = ObjectBox.getMyWalletTableManager()
+                    .put(walletTable)
+            it.onNext(count > 0)
+        }
     }
 
 }
