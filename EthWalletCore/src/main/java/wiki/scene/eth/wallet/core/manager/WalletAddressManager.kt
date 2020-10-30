@@ -1,9 +1,10 @@
 package wiki.scene.eth.wallet.core.manager
 
-import io.reactivex.Observable
+import io.reactivex.Flowable
+import wiki.scene.eth.wallet.core.db.box.ObjectBox
+import wiki.scene.eth.wallet.core.db.table.WalletAddressInfo
+import wiki.scene.eth.wallet.core.db.table.WalletAddressInfo_
 import wiki.scene.eth.wallet.core.ext.changeIOThread
-import wiki.scene.eth.wallet.core.room.WalletDatabaseHelper
-import wiki.scene.eth.wallet.core.room.table.WalletAddressInfo
 
 /**
  *
@@ -20,49 +21,44 @@ object WalletAddressManager {
      * 添加一条钱包地址
      * 如果存在就是修改
      */
-    fun addOrUpdateWalletAddress(walletAddressInfo: WalletAddressInfo): Observable<Boolean> {
-        return Observable.just(WalletDatabaseHelper.getInstance()
-                .walletAddressDao()
-                .addOrUpdateWalletAddress(walletAddressInfo))
-                .flatMap { Observable.just(true) }
+    fun addOrUpdateWalletAddress(walletAddressInfo: WalletAddressInfo): Flowable<Boolean> {
+        return Flowable.just(ObjectBox.getWalletAddressInfoManager()
+                .put(walletAddressInfo) > 0)
                 .changeIOThread()
     }
 
     /**
      * 根据Id来查询钱包对象
      */
-    fun queryWalletAddressById(addressId: Int): Observable<WalletAddressInfo> {
-        return Observable.just(WalletDatabaseHelper.getInstance()
-                .walletAddressDao()
-                .queryWalletAddressById(addressId))
-                .flatMap {
-                    if (it.size == 1) {
-                        return@flatMap Observable.just(it[0])
-                    } else {
-                        return@flatMap Observable.error(Exception("data error"))
-                    }
-                }
+    fun queryWalletAddressById(addressId: Long): Flowable<WalletAddressInfo?> {
+        return Flowable.just(ObjectBox.getWalletAddressInfoManager()
+                .query()
+                .equal(WalletAddressInfo_.addressId, addressId)
+                .build()
+                .findFirst())
                 .changeIOThread()
     }
 
     /**
      * 查询全部钱包
      */
-    fun queryWalletAddress(): Observable<MutableList<WalletAddressInfo>> {
-        return Observable.just(WalletDatabaseHelper.getInstance()
-                .walletAddressDao().queryAllWalletAddress())
+    fun queryWalletAddress(): Flowable<MutableList<WalletAddressInfo>> {
+        return Flowable.just(ObjectBox.getWalletAddressInfoManager()
+                .query()
+                .build()
+                .find())
                 .changeIOThread()
     }
 
     /**
      * 根据Id删除钱包
      */
-    fun deleteWalletAddressById(addressId: Int): Observable<Boolean> {
-        return Observable.just(WalletDatabaseHelper.getInstance()
-                .walletAddressDao()
-                .deleteWalletAddressById(addressId))
-                .flatMap { Observable.just(true) }
+    fun deleteWalletAddressById(addressId: Long): Flowable<Boolean> {
+        return Flowable.just(ObjectBox.getWalletAddressInfoManager()
+                .query()
+                .equal(WalletAddressInfo_.addressId, addressId)
+                .build()
+                .remove() > 0)
                 .changeIOThread()
-
     }
 }

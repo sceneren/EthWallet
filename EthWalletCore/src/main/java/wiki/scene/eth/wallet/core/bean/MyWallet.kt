@@ -1,6 +1,5 @@
 package wiki.scene.eth.wallet.core.bean
 
-import androidx.room.Entity
 import wiki.scene.eth.wallet.core.config.WalletType
 import wiki.scene.eth.wallet.core.util.Wallet
 
@@ -14,9 +13,8 @@ import wiki.scene.eth.wallet.core.util.Wallet
  * @UpdateRemark:   更新说明：
  * @Version:        1.0.0
  */
-@Entity
 data class MyWallet(
         val wallet: Wallet,
         val walletType: WalletType,
-        var walletName: String
+        var walletName: String = ""
 )

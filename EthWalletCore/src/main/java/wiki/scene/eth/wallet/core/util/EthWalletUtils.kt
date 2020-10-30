@@ -1,5 +1,6 @@
 package wiki.scene.eth.wallet.core.util
 
+import io.reactivex.Flowable
 import io.reactivex.Observable
 import org.consenlabs.tokencore.foundation.utils.MnemonicUtil
 import org.consenlabs.tokencore.wallet.model.ChainType
@@ -8,11 +9,12 @@ import org.consenlabs.tokencore.wallet.model.TokenException
 import wiki.scene.eth.wallet.core.bean.MyWallet
 import wiki.scene.eth.wallet.core.config.WalletConfig
 import wiki.scene.eth.wallet.core.config.WalletType
+import wiki.scene.eth.wallet.core.db.box.ObjectBox
+import wiki.scene.eth.wallet.core.db.table.MyWalletTable
+import wiki.scene.eth.wallet.core.db.table.MyWalletTable_
 import wiki.scene.eth.wallet.core.exception.WalletException
 import wiki.scene.eth.wallet.core.exception.WalletExceptionCode
-import wiki.scene.eth.wallet.core.ext.changeNewThread
-import wiki.scene.eth.wallet.core.room.WalletDatabaseHelper
-import wiki.scene.eth.wallet.core.room.table.MyWalletTable
+import wiki.scene.eth.wallet.core.ext.changeIOThread
 
 /**
  *
@@ -34,7 +36,7 @@ object EthWalletUtils {
             } else {
                 it.onNext(Identity.currentIdentity)
             }
-        }.changeNewThread()
+        }.changeIOThread()
 
 
     }
@@ -64,14 +66,15 @@ object EthWalletUtils {
             }
 
             myWalletList.forEach {
-                val walletTable = WalletDatabaseHelper.getInstance()
-                        .myWalletDao()
-                        .queryWalletById(it.wallet.id)
-                val walletName = walletTable?.walletName ?: ""
-                it.walletName = walletName
+                val result = ObjectBox.getMyWalletTableManager()
+                        .query()
+                        .equal(MyWalletTable_.walletId, it.wallet.id)
+                        .build()
+                        .findFirst()
+                it.walletName = result?.walletName ?: ""
             }
             return@zip myWalletList
-        }).changeNewThread()
+        }).changeIOThread()
     }
 
     /**
@@ -86,7 +89,7 @@ object EthWalletUtils {
                 val mnemonicListStr = mnemonicList.joinToString(" ")
                 it.onNext(inputMnemonicListStr == mnemonicListStr)
             }
-        }.changeNewThread()
+        }.changeIOThread()
     }
 
     /**
@@ -107,11 +110,12 @@ object EthWalletUtils {
                 .flatMap { importWalletByMnemonic(walletType, it, walletName, walletPassword) }
                 .zipWith(getIdentity(walletType), { myWallet, identity ->
                     identity.addWallet(myWallet.wallet)
-                    WalletDatabaseHelper.getInstance()
-                            .myWalletDao()
-                            .saveWallet(MyWalletTable(myWallet.wallet.id, walletName))
+                    val myWalletTable = MyWalletTable(myWallet.wallet.id, walletName)
+                    ObjectBox.getMyWalletTableManager()
+                            .put(myWalletTable)
+
                     return@zipWith myWallet
-                }).changeNewThread()
+                }).changeIOThread()
 
     }
 
@@ -134,7 +138,7 @@ object EthWalletUtils {
                 it.onError(e)
             }
 
-        }.changeNewThread()
+        }.changeIOThread()
     }
 
 
@@ -147,11 +151,12 @@ object EthWalletUtils {
             try {
                 val myWalletList = mutableListOf<MyWallet>()
                 it.wallets.forEach { wallet ->
-                    val walletTable = WalletDatabaseHelper.getInstance()
-                            .myWalletDao()
-                            .queryWalletById(wallet.id)
-
-                    val walletName = walletTable?.walletName ?: ""
+                    val data = ObjectBox.getMyWalletTableManager()
+                            .query()
+                            .equal(MyWalletTable_.walletId, wallet.id)
+                            .build()
+                            .findFirst()
+                    val walletName = data?.walletName ?: ""
                     myWalletList.add(MyWallet(wallet, walletType, walletName))
                 }
                 return@flatMap Observable.just(myWalletList)
@@ -184,15 +189,14 @@ object EthWalletUtils {
                             metadata.chainType = ChainType.ETHEREUM
                             val wallet = WalletManager.importWalletFromMnemonic(metadata, mnemonic, "m/44'/60'/0'/0/0", walletPassword, true)
                             val walletTable = MyWalletTable(wallet.id, walletName)
-                            WalletDatabaseHelper.getInstance()
-                                    .myWalletDao()
-                                    .saveWallet(walletTable)
+                            ObjectBox.getMyWalletTableManager()
+                                    .put(walletTable)
                             return@flatMap Observable.just(MyWallet(wallet, walletType, walletName))
                         }
                     } catch (e: TokenException) {
                         return@flatMap Observable.error(e)
                     }
-                }.changeNewThread()
+                }.changeIOThread()
     }
 
     /**
@@ -214,32 +218,31 @@ object EthWalletUtils {
                         metadata.chainType = ChainType.ETHEREUM
                         val wallet = WalletManager.importWalletFromPrivateKey(metadata, privateKey, walletPassword, true)
                         val walletTable = MyWalletTable(wallet.id, walletName)
-                        WalletDatabaseHelper.getInstance()
-                                .myWalletDao()
-                                .saveWallet(walletTable)
+                        ObjectBox.getMyWalletTableManager()
+                                .put(walletTable)
                         return@flatMap Observable.just(MyWallet(wallet, walletType, walletName))
                     } catch (e: TokenException) {
                         return@flatMap Observable.error(e)
                     }
 
-                }.changeNewThread()
+                }.changeIOThread()
     }
 
     /**
      * 删除钱包根据Id
      */
-    fun deleteWalletById(walletId: String, password: String): Observable<Boolean> {
-        return Observable.create<Boolean> {
-            try {
-                WalletManager.removeWallet(walletId, password)
-                WalletDatabaseHelper.getInstance()
-                        .myWalletDao()
-                        .deleteWalletById(walletId)
-                it.onNext(true)
-            } catch (e: TokenException) {
-                it.onError(e)
-            }
-        }.changeNewThread()
+    fun deleteWalletById(walletId: String, password: String): Flowable<Boolean> {
+
+        return Flowable.just(WalletManager.removeWallet(walletId, password))
+                .flatMap {
+                    val count = ObjectBox.getMyWalletTableManager()
+                            .query()
+                            .equal(MyWalletTable_.walletId, walletId)
+                            .build()
+                            .remove()
+                    return@flatMap Flowable.just(count > 0)
+                }
+
     }
 
 }
