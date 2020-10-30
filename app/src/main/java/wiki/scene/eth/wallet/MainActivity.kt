@@ -6,8 +6,8 @@ import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import kotlinx.android.synthetic.main.activity_main.*
 import wiki.scene.eth.wallet.core.config.WalletType
-import wiki.scene.eth.wallet.core.manager.WalletAddressManager
 import wiki.scene.eth.wallet.core.db.table.WalletAddressInfo
+import wiki.scene.eth.wallet.core.manager.WalletAddressManager
 import wiki.scene.eth.wallet.core.util.EthWalletUtils
 
 class MainActivity : AppCompatActivity() {
@@ -25,7 +25,17 @@ class MainActivity : AppCompatActivity() {
         }
 
         createWallet.setOnClickListener {
-            createWallet()
+
+            EthWalletUtils.createMnemonic()
+                    .flatMap {
+                        return@flatMap EthWalletUtils.createEthWallet(WalletType.ETH_WALLET_TYPE_ETH, it, "ETH", "123")
+                    }.flatMap {
+                        return@flatMap EthWalletUtils.setDefaultWalletById(it.wallet.id)
+                    }.flatMap { return@flatMap EthWalletUtils.getWalletList() }
+                    .subscribe {
+                        Log.e("钱包数据", it.size.toString())
+                        Log.e("address", it.toString())
+                    }
         }
         createMnemonic.setOnClickListener {
             EthWalletUtils.getWalletListByType(WalletType.ETH_WALLET_TYPE_ETH)
@@ -73,15 +83,6 @@ class MainActivity : AppCompatActivity() {
             WalletAddressManager.addOrUpdateWalletAddress(addressInfo)
         }
 
-
-    }
-
-    @SuppressLint("CheckResult", "SetTextI18n")
-    private fun createWallet() {
-        EthWalletUtils.createEthWallet(WalletType.ETH_WALLET_TYPE_ETH, "xx", "12345678")
-                .subscribe {
-                    Log.e("xxx33", it.toString())
-                }
 
     }
 

