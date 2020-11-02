@@ -7,11 +7,13 @@ import wiki.scene.eth.wallet.core.config.WalletType
 @Entity
 data class WalletAddressInfo(
         var logo: Int = 0,
-        var walletType: Int = WalletType.ETH_WALLET_TYPE_ETH.ordinal,
+        var walletTypeInt: Int = WalletType.ETH_WALLET_TYPE_ETH.ordinal,
         var walletAddress: String = "",
         var remark: String = "",
 ) {
     @Id
     var addressId: Long = 0
     var createTime: Long = 0
+    @Transient
+    val walletType: WalletType = WalletType.values()[walletTypeInt]
 }

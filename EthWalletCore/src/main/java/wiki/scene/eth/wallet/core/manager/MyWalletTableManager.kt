@@ -27,7 +27,7 @@ object MyWalletTableManager {
 
     fun insertOrUpdateWallet(myWalletTable: MyWalletTable, walletDefault: Int, walletListImageRes: Int): Boolean {
         myWalletTable.walletDefault = walletDefault
-        myWalletTable.walletListImageRes = myWalletTable.walletListImageRes
+        myWalletTable.walletListImageRes = walletListImageRes
         if (myWalletTable.id == 0L) {
             myWalletTable.createTime = System.currentTimeMillis()
         }
