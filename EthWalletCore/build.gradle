@@ -45,7 +45,7 @@ publish {
     userOrg = 'scene'
     groupId = 'wiki.scene.eth.wallet'
     artifactId = 'EthWalletCore'
-    publishVersion = '1.1.4'
+    publishVersion = '1.1.5'
     desc = 'ETH wallet base core'
     website = 'https://github.com/sceneren/EthWallet'
 }

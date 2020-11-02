@@ -28,7 +28,7 @@ class MainActivity : AppCompatActivity() {
 
             EthWalletUtils.createMnemonic()
                     .flatMap {
-                        return@flatMap EthWalletUtils.createEthWallet(WalletType.ETH_WALLET_TYPE_ETH, it, "ETH", "123")
+                        return@flatMap EthWalletUtils.createEthWallet(WalletType.ETH_WALLET_TYPE_ETH, it, "ETH", "123",0)
                     }.flatMap {
                         return@flatMap EthWalletUtils.setDefaultWalletById(it.wallet.id)
                     }.flatMap { return@flatMap EthWalletUtils.getWalletList() }
@@ -46,7 +46,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnImportWalletByPrivateKey.setOnClickListener {
-            EthWalletUtils.importWalletByPrivateKey(WalletType.ETH_WALLET_TYPE_ETH, "123126734", "xxx", "11112222")
+            EthWalletUtils.importWalletByPrivateKey(WalletType.ETH_WALLET_TYPE_ETH, "123126734", "xxx", "11112222",0)
                     .subscribe {
                         Log.e("xx", it.walletName)
                     }

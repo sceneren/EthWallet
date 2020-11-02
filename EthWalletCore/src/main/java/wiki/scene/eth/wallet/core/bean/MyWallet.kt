@@ -17,5 +17,6 @@ data class MyWallet(
         val wallet: Wallet,
         val walletType: WalletType,
         var walletName: String = "",
-        var walletDefault: Int = 0
+        var walletDefault: Int = 0,
+        var walletListImageRes: Int = 0
 )

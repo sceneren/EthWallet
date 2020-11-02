@@ -1,6 +1,6 @@
 package wiki.scene.eth.wallet.core.manager
 
-import io.reactivex.Flowable
+import io.reactivex.Observable
 import wiki.scene.eth.wallet.core.db.box.ObjectBox
 import wiki.scene.eth.wallet.core.db.table.WalletAddressInfo
 import wiki.scene.eth.wallet.core.db.table.WalletAddressInfo_
@@ -21,8 +21,9 @@ object WalletAddressManager {
      * 添加一条钱包地址
      * 如果存在就是修改
      */
-    fun addOrUpdateWalletAddress(walletAddressInfo: WalletAddressInfo): Flowable<Boolean> {
-        return Flowable.just(ObjectBox.getWalletAddressInfoManager()
+    fun addOrUpdateWalletAddress(walletAddressInfo: WalletAddressInfo): Observable<Boolean> {
+        walletAddressInfo.createTime = System.currentTimeMillis()
+        return Observable.just(ObjectBox.getWalletAddressInfoManager()
                 .put(walletAddressInfo) > 0)
                 .changeIOThread()
     }
@@ -30,8 +31,8 @@ object WalletAddressManager {
     /**
      * 根据Id来查询钱包对象
      */
-    fun queryWalletAddressById(addressId: Long): Flowable<WalletAddressInfo?> {
-        return Flowable.just(ObjectBox.getWalletAddressInfoManager()
+    fun queryWalletAddressById(addressId: Long): Observable<WalletAddressInfo?> {
+        return Observable.just(ObjectBox.getWalletAddressInfoManager()
                 .query()
                 .equal(WalletAddressInfo_.addressId, addressId)
                 .build()
@@ -42,8 +43,8 @@ object WalletAddressManager {
     /**
      * 查询全部钱包
      */
-    fun queryWalletAddress(): Flowable<MutableList<WalletAddressInfo>> {
-        return Flowable.just(ObjectBox.getWalletAddressInfoManager()
+    fun queryWalletAddress(): Observable<MutableList<WalletAddressInfo>> {
+        return Observable.just(ObjectBox.getWalletAddressInfoManager()
                 .query()
                 .build()
                 .find())
@@ -53,12 +54,13 @@ object WalletAddressManager {
     /**
      * 根据Id删除钱包
      */
-    fun deleteWalletAddressById(addressId: Long): Flowable<Boolean> {
-        return Flowable.just(ObjectBox.getWalletAddressInfoManager()
+    fun deleteWalletAddressById(addressId: Long): Observable<Boolean> {
+        return Observable.just(ObjectBox.getWalletAddressInfoManager()
                 .query()
                 .equal(WalletAddressInfo_.addressId, addressId)
                 .build()
                 .remove() > 0)
                 .changeIOThread()
+
     }
 }
