@@ -224,7 +224,7 @@ object EthWalletUtils {
     fun exportPrivateKey(walletId: String, walletPassword: String): Observable<String> {
         return Observable.create<String> {
             try {
-                it.onNext(WalletManager.exportKeystore(walletId, walletPassword))
+                it.onNext(WalletManager.exportPrivateKey(walletId, walletPassword))
             } catch (e: TokenException) {
                 it.onError(e)
             }
