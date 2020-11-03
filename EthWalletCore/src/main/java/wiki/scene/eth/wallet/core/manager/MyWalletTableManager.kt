@@ -18,6 +18,14 @@ import wiki.scene.eth.wallet.core.ext.changeIOThread
  * @Version:        1.0.0
  */
 object MyWalletTableManager {
+
+    fun queryWallet(): MutableList<MyWalletTable> {
+        return ObjectBox.getMyWalletTableManager()
+                .query()
+                .build()
+                .find()
+    }
+
     fun queryWalletByWalletId(walletId: String): MyWalletTable? {
         return ObjectBox.getMyWalletTableManager()
                 .query()

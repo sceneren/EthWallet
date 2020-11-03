@@ -45,9 +45,8 @@ object EthWalletUtils {
      * 是否创建钱包
      */
     fun hasWallet(): Observable<Boolean> {
-        return getWalletList().flatMap {
-            return@flatMap Observable.just(it.size != 0)
-        }.changeIOThread()
+        return Observable.just(MyWalletTableManager.queryWallet())
+                .flatMap { Observable.just(it.size > 0) }
     }
 
     /**

@@ -17,6 +17,14 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         tvResult1.text = System.currentTimeMillis().toString()
 
+        btnCheckHasWallet.setOnClickListener {
+            Log.e("开始时间：", System.currentTimeMillis().toString())
+            EthWalletUtils.hasWallet().subscribe({
+                Log.e("结束时间：", System.currentTimeMillis().toString())
+                Log.e("是否有钱包", it.toString())
+            }, { Log.e("错误", it.message!!) })
+        }
+
         getCurrentWallet.setOnClickListener {
             EthWalletUtils.getDefaultWallet()
                     .subscribe({
