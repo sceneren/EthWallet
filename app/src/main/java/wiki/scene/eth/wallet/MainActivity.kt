@@ -29,8 +29,6 @@ class MainActivity : AppCompatActivity() {
             EthWalletUtils.createMnemonic()
                     .flatMap {
                         return@flatMap EthWalletUtils.createEthWallet(WalletType.ETH_WALLET_TYPE_ETH, it, "ETH", "123",0)
-                    }.flatMap {
-                        return@flatMap EthWalletUtils.setDefaultWalletById(it.wallet.id)
                     }.flatMap { return@flatMap EthWalletUtils.getWalletList() }
                     .subscribe {
                         Log.e("钱包数据", it.size.toString())

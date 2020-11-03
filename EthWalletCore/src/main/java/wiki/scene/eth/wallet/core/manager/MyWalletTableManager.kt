@@ -1,5 +1,6 @@
 package wiki.scene.eth.wallet.core.manager
 
+import io.objectbox.kotlin.query
 import io.reactivex.Observable
 import wiki.scene.eth.wallet.core.db.box.ObjectBox
 import wiki.scene.eth.wallet.core.db.table.MyWalletTable
@@ -57,5 +58,21 @@ object MyWalletTableManager {
                 .equal(MyWalletTable_.walletDefault, 1)
                 .build()
                 .findFirst()
+    }
+
+    fun setDefaultWalletByWalletId(walletId: String): Boolean {
+        val chooseWallet = ObjectBox.getMyWalletTableManager()
+                .query()
+                .equal(MyWalletTable_.walletId, walletId)
+                .build()
+                .findFirst()
+        return if (chooseWallet != null) {
+            chooseWallet.walletDefault = 1
+            ObjectBox.getMyWalletTableManager()
+                    .put(chooseWallet) > 0
+        } else {
+            false
+        }
+
     }
 }

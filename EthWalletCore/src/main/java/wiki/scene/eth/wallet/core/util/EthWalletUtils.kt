@@ -183,10 +183,14 @@ object EthWalletUtils {
                             metadata.chainType = ChainType.ETHEREUM
                             val wallet = WalletManager.importWalletFromMnemonic(walletType, metadata, mnemonic, "m/44'/60'/0'/0/0", walletPassword, true)
 
-                            val myWallet = MyWallet(wallet, walletType, walletName, 1,walletListImageRes)
+                            val myWallet = MyWallet(wallet, walletType, walletName, 1, walletListImageRes)
                             val myWalletTable = MyWalletTable(myWallet.wallet.id, walletName)
+                            val oldDefaultWallet = MyWalletTableManager.queryDefaultWallet()
+                            if (oldDefaultWallet != null) {
+                                oldDefaultWallet.walletDefault = 0
+                                MyWalletTableManager.insertOrUpdateWallet(oldDefaultWallet)
+                            }
                             MyWalletTableManager.insertOrUpdateWallet(myWalletTable, 1, walletListImageRes)
-
                             return@flatMap Observable.just(myWallet)
                         }
                     } catch (e: TokenException) {
@@ -218,7 +222,7 @@ object EthWalletUtils {
 
                         MyWalletTableManager.insertOrUpdateWallet(myWalletTable, 1, walletListImageRes)
 
-                        return@flatMap Observable.just(MyWallet(wallet, walletType, walletName, 1,walletListImageRes))
+                        return@flatMap Observable.just(MyWallet(wallet, walletType, walletName, 1, walletListImageRes))
                     } catch (e: TokenException) {
                         return@flatMap Observable.error(e)
                     }
@@ -259,15 +263,15 @@ object EthWalletUtils {
     }
 
     /**
-     * 添加默认钱包
+     * 设置默认钱包
      */
-    fun setDefaultWalletByWallet(walletTable: MyWalletTable): Observable<Boolean> {
+    fun setDefaultWalletByWalletId(walletId: String): Observable<Boolean> {
         return Observable.create<Boolean> {
             val oldDefault = MyWalletTableManager.queryDefaultWallet()
             if (oldDefault != null) {
                 MyWalletTableManager.insertOrUpdateWallet(oldDefault, 0, oldDefault.walletListImageRes)
             }
-            it.onNext(MyWalletTableManager.insertOrUpdateWallet(walletTable, 1, walletTable.walletListImageRes))
+            it.onNext(MyWalletTableManager.setDefaultWalletByWalletId(walletId))
         }.changeIOThread()
     }
 
