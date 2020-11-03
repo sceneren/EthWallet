@@ -161,7 +161,7 @@ object EthWalletUtils {
                             val wallet = WalletManager.importWalletFromMnemonic(walletType, metadata, mnemonic, "m/44'/60'/0'/0/0", walletPassword, true)
 
                             val myWallet = MyWallet(wallet, walletType, walletName, 1, walletListImageRes)
-                            val myWalletTable = MyWalletTable(myWallet.wallet.id, walletName)
+                            val myWalletTable = MyWalletTable(myWallet.wallet.id, walletName, walletType.ordinal)
                             val oldDefaultWallet = MyWalletTableManager.queryDefaultWallet()
                             if (oldDefaultWallet != null) {
                                 oldDefaultWallet.walletDefault = 0
@@ -195,7 +195,7 @@ object EthWalletUtils {
                         metadata.segWit = Metadata.P2WPKH
                         metadata.chainType = ChainType.ETHEREUM
                         val wallet = WalletManager.importWalletFromPrivateKey(walletType, metadata, privateKey, walletPassword, true)
-                        val myWalletTable = MyWalletTable(wallet.id, walletName)
+                        val myWalletTable = MyWalletTable(wallet.id, walletName,walletType.ordinal)
 
                         MyWalletTableManager.insertOrUpdateWallet(myWalletTable, 1, walletListImageRes)
 
@@ -285,6 +285,25 @@ object EthWalletUtils {
                 MyWalletTableManager.insertOrUpdateWallet(oldDefault, 0, oldDefault.walletListImageRes)
             }
             it.onNext(MyWalletTableManager.setDefaultWalletByWalletId(walletId))
+        }.changeIOThread()
+    }
+
+    /**
+     * 获取默认钱包
+     */
+    fun getDefaultWallet(): Observable<MyWallet> {
+        return Observable.create<MyWallet> {
+            val defaultWallet = MyWalletTableManager.queryDefaultWallet()
+            if (defaultWallet == null) {
+                it.onError(WalletException(WalletExceptionCode.ERROR_WALLET_NOT_FOUND))
+            } else {
+                try {
+                    val wallet = WalletManager.mustFindWalletById(defaultWallet.walletId)
+                    it.onNext(MyWallet(wallet, defaultWallet.walletType, defaultWallet.walletName, defaultWallet.walletDefault, defaultWallet.walletListImageRes))
+                } catch (e: TokenException) {
+                    it.onError(e)
+                }
+            }
         }.changeIOThread()
     }
 

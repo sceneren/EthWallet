@@ -17,18 +17,20 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         getCurrentWallet.setOnClickListener {
-            EthWalletUtils.getWalletList()
-                    .subscribe {
-                        Log.e("钱包数据", it.size.toString())
+            EthWalletUtils.getDefaultWallet()
+                    .subscribe({
+                        Log.e("钱包数据", it.toString())
                         Log.e("address", it.toString())
-                    }
+                    }, {
+                        Log.e("错误", it.message!!)
+                    })
         }
 
         createWallet.setOnClickListener {
 
             EthWalletUtils.createMnemonic()
                     .flatMap {
-                        return@flatMap EthWalletUtils.createEthWallet(WalletType.ETH_WALLET_TYPE_ETH, it, "ETH", "123",0)
+                        return@flatMap EthWalletUtils.createEthWallet(WalletType.ETH_WALLET_TYPE_ETH, it, "ETH", "123", 0)
                     }.flatMap { return@flatMap EthWalletUtils.getWalletList() }
                     .subscribe {
                         Log.e("钱包数据", it.size.toString())
@@ -44,7 +46,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnImportWalletByPrivateKey.setOnClickListener {
-            EthWalletUtils.importWalletByPrivateKey(WalletType.ETH_WALLET_TYPE_ETH, "123126734", "xxx", "11112222",0)
+            EthWalletUtils.importWalletByPrivateKey(WalletType.ETH_WALLET_TYPE_ETH, "123126734", "xxx", "11112222", 0)
                     .subscribe {
                         Log.e("xx", it.walletName)
                     }
