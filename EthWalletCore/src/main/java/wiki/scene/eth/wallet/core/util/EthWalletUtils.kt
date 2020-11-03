@@ -116,29 +116,6 @@ object EthWalletUtils {
     }
 
     /**
-     * 获取当前钱包的助记词
-     * @param walletId 钱包Id
-     * @param  walletPassword 钱包密码
-     */
-    fun getWalletMnemonic(walletId: String, walletPassword: String): Observable<MutableList<String>> {
-        return Observable.create<MutableList<String>> {
-            try {
-                val mnemonic = WalletManager.exportMnemonic(walletId, walletPassword)
-                val mnemonicList = mnemonic.mnemonic.split(" ").toMutableList()
-                if (mnemonicList.size != 12) {
-                    it.onError(WalletException(WalletExceptionCode.ERROR_MNEMONIC))
-                } else {
-                    it.onNext(mnemonicList)
-                }
-            } catch (e: TokenException) {
-                it.onError(e)
-            }
-
-        }.changeIOThread()
-    }
-
-
-    /**
      * 根据类型获取钱包列表
      * @param walletType 钱包类型
      */
@@ -239,6 +216,42 @@ object EthWalletUtils {
                     return@flatMap MyWalletTableManager.deleteWalletByWalletId(walletId)
                 }.changeIOThread()
 
+    }
+
+
+    /**
+     * 获取当前钱包的私钥
+     */
+    fun exportPrivateKey(walletId: String, walletPassword: String): Observable<String> {
+        return Observable.create<String> {
+            try {
+                it.onNext(WalletManager.exportKeystore(walletId, walletPassword))
+            } catch (e: TokenException) {
+                it.onError(e)
+            }
+        }.changeIOThread()
+    }
+
+    /**
+     * 获取当前钱包的助记词
+     * @param walletId 钱包Id
+     * @param  walletPassword 钱包密码
+     */
+    fun exportWalletMnemonic(walletId: String, walletPassword: String): Observable<MutableList<String>> {
+        return Observable.create<MutableList<String>> {
+            try {
+                val mnemonic = WalletManager.exportMnemonic(walletId, walletPassword)
+                val mnemonicList = mnemonic.mnemonic.split(" ").toMutableList()
+                if (mnemonicList.size != 12) {
+                    it.onError(WalletException(WalletExceptionCode.ERROR_MNEMONIC))
+                } else {
+                    it.onNext(mnemonicList)
+                }
+            } catch (e: TokenException) {
+                it.onError(e)
+            }
+
+        }.changeIOThread()
     }
 
     /**

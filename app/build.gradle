@@ -40,6 +40,12 @@ android {
         exclude 'lib/x86_64/darwin/libscrypt.dylib'
     }
 
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['libs']
+        }
+    }
+
 }
 
 dependencies {
