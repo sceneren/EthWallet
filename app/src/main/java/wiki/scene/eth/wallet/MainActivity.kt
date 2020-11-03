@@ -15,6 +15,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        tvResult1.text = System.currentTimeMillis().toString()
 
         getCurrentWallet.setOnClickListener {
             EthWalletUtils.getDefaultWallet()

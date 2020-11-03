@@ -195,7 +195,7 @@ object EthWalletUtils {
                         metadata.segWit = Metadata.P2WPKH
                         metadata.chainType = ChainType.ETHEREUM
                         val wallet = WalletManager.importWalletFromPrivateKey(walletType, metadata, privateKey, walletPassword, true)
-                        val myWalletTable = MyWalletTable(wallet.id, walletName,walletType.ordinal)
+                        val myWalletTable = MyWalletTable(wallet.id, walletName, walletType.ordinal)
 
                         MyWalletTableManager.insertOrUpdateWallet(myWalletTable, 1, walletListImageRes)
 
@@ -306,5 +306,25 @@ object EthWalletUtils {
             }
         }.changeIOThread()
     }
+
+    /**
+     * 修改钱包名称
+     * @param walletId 钱包Id
+     * @param walletName 钱包的新名称
+     */
+    fun updateWalletName(walletId: String, walletName: String): Observable<Boolean> {
+        return Observable.create<MyWalletTable> {
+            val wallet = MyWalletTableManager.queryWalletByWalletId(walletId)
+            if (wallet == null) {
+                it.onError(WalletException(WalletExceptionCode.ERROR_WALLET_NOT_FOUND))
+            } else {
+                it.onNext(wallet)
+            }
+        }.flatMap {
+            it.walletName = walletName
+            return@flatMap Observable.just(MyWalletTableManager.insertOrUpdateWallet(it))
+        }.changeIOThread()
+    }
+
 
 }
