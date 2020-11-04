@@ -10,9 +10,11 @@ import wiki.scene.eth.wallet.core.bean.MyWallet
 import wiki.scene.eth.wallet.core.config.WalletConfig
 import wiki.scene.eth.wallet.core.config.WalletType
 import wiki.scene.eth.wallet.core.db.table.MyWalletTable
+import wiki.scene.eth.wallet.core.db.table.OtherWalletInfo
 import wiki.scene.eth.wallet.core.exception.WalletException
 import wiki.scene.eth.wallet.core.exception.WalletExceptionCode
 import wiki.scene.eth.wallet.core.ext.changeIOThread
+import wiki.scene.eth.wallet.core.manager.MyOtherWalletManager
 import wiki.scene.eth.wallet.core.manager.MyWalletTableManager
 
 /**
@@ -157,17 +159,21 @@ object EthWalletUtils {
                             metadata.network = WalletConfig.ETH_NET_WORK
                             metadata.segWit = Metadata.P2WPKH
                             metadata.chainType = ChainType.ETHEREUM
-                            val wallet = WalletManager.importWalletFromMnemonic(walletType, metadata, mnemonic, "m/44'/60'/0'/0/0", walletPassword, true)
-
-                            val myWallet = MyWallet(wallet, walletType, walletName, 1, walletListImageRes)
-                            val myWalletTable = MyWalletTable(myWallet.wallet.id, walletName, walletType.ordinal)
-                            val oldDefaultWallet = MyWalletTableManager.queryDefaultWallet()
-                            if (oldDefaultWallet != null) {
-                                oldDefaultWallet.walletDefault = 0
-                                MyWalletTableManager.insertOrUpdateWallet(oldDefaultWallet)
+                            val checkWallet = WalletManager.findWalletByMnemonic(ChainType.ETHEREUM, WalletConfig.ETH_NET_WORK, mnemonic, "m/44'/60'/0'/0/0", Metadata.P2WPKH)
+                            if (checkWallet == null) {
+                                val wallet = WalletManager.importWalletFromMnemonic(walletType, metadata, mnemonic, "m/44'/60'/0'/0/0", walletPassword, true)
+                                val myWallet = MyWallet(wallet, walletType, walletName, 1, walletListImageRes)
+                                val myWalletTable = MyWalletTable(myWallet.wallet.id, walletName, walletType.ordinal)
+                                val oldDefaultWallet = MyWalletTableManager.queryDefaultWallet()
+                                if (oldDefaultWallet != null) {
+                                    oldDefaultWallet.walletDefault = 0
+                                    MyWalletTableManager.insertOrUpdateWallet(oldDefaultWallet)
+                                }
+                                MyWalletTableManager.insertOrUpdateWallet(myWalletTable, 1, walletListImageRes)
+                                return@flatMap Observable.just(myWallet)
+                            } else {
+                                return@flatMap Observable.error(WalletException(WalletExceptionCode.ERROR_WALLET_EXITS))
                             }
-                            MyWalletTableManager.insertOrUpdateWallet(myWalletTable, 1, walletListImageRes)
-                            return@flatMap Observable.just(myWallet)
                         }
                     } catch (e: TokenException) {
                         return@flatMap Observable.error(e)
@@ -188,17 +194,24 @@ object EthWalletUtils {
         return getIdentity(walletType)
                 .flatMap {
                     try {
-                        val metadata = Metadata()
-                        metadata.source = Metadata.FROM_MNEMONIC
-                        metadata.network = WalletConfig.ETH_NET_WORK
-                        metadata.segWit = Metadata.P2WPKH
-                        metadata.chainType = ChainType.ETHEREUM
-                        val wallet = WalletManager.importWalletFromPrivateKey(walletType, metadata, privateKey, walletPassword, true)
-                        val myWalletTable = MyWalletTable(wallet.id, walletName, walletType.ordinal)
 
-                        MyWalletTableManager.insertOrUpdateWallet(myWalletTable, 1, walletListImageRes)
+                        val checkWallet = WalletManager.findWalletByPrivateKey(ChainType.ETHEREUM, WalletConfig.ETH_NET_WORK, privateKey, Metadata.P2WPKH)
+                        if (checkWallet == null) {
+                            val metadata = Metadata()
+                            metadata.source = Metadata.FROM_MNEMONIC
+                            metadata.network = WalletConfig.ETH_NET_WORK
+                            metadata.segWit = Metadata.P2WPKH
+                            metadata.chainType = ChainType.ETHEREUM
+                            val wallet = WalletManager.importWalletFromPrivateKey(walletType, metadata, privateKey, walletPassword, true)
+                            val myWalletTable = MyWalletTable(wallet.id, walletName, walletType.ordinal)
 
-                        return@flatMap Observable.just(MyWallet(wallet, walletType, walletName, 1, walletListImageRes))
+                            MyWalletTableManager.insertOrUpdateWallet(myWalletTable, 1, walletListImageRes)
+
+                            return@flatMap Observable.just(MyWallet(wallet, walletType, walletName, 1, walletListImageRes))
+                        } else {
+                            return@flatMap Observable.error(WalletException(WalletExceptionCode.ERROR_WALLET_EXITS))
+                        }
+
                     } catch (e: TokenException) {
                         return@flatMap Observable.error(e)
                     }
@@ -209,12 +222,24 @@ object EthWalletUtils {
      * 删除钱包根据Id
      */
     fun deleteWalletById(walletType: WalletType, walletId: String, password: String): Observable<Boolean> {
-
-        return Observable.just(WalletManager.removeWallet(walletType, walletId, password))
-                .flatMap {
-                    return@flatMap MyWalletTableManager.deleteWalletByWalletId(walletId)
-                }.changeIOThread()
-
+        return Observable.create<Wallet> {
+            try {
+                val wallet = WalletManager.findWalletById(walletId)
+                if (wallet != null) {
+                    it.onNext(wallet)
+                } else {
+                    it.onError(WalletException(WalletExceptionCode.ERROR_WALLET_NOT_FOUND))
+                }
+            } catch (e: Exception) {
+                it.onError(WalletException(WalletExceptionCode.ERROR_WALLET_NOT_FOUND))
+            }
+        }.flatMap {
+            val otherWalletInfo = OtherWalletInfo(it.address, it.exportKeystore(password))
+            MyOtherWalletManager.insert(otherWalletInfo)
+            return@flatMap Observable.just(true)
+        }.flatMap {
+            return@flatMap MyWalletTableManager.deleteWalletByWalletId(walletId)
+        }.changeIOThread()
     }
 
 

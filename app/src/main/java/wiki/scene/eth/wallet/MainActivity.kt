@@ -49,7 +49,6 @@ class MainActivity : AppCompatActivity() {
         createMnemonic.setOnClickListener {
             EthWalletUtils.getWalletListByType(WalletType.ETH_WALLET_TYPE_ETH)
                     .subscribe {
-//                        it[0].wallet.setAccountName()
                         it.forEach { wallet -> Log.e("wallet", wallet.toString()) }
                     }
         }

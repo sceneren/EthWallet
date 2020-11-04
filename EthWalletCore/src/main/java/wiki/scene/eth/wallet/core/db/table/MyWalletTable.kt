@@ -17,6 +17,7 @@ class MyWalletTable(
     var walletDefault: Int = 0//0-不是默认 1-默认
     var walletListImageRes: Int = 0
     var createTime: Long = 0
-    @Transient
-    var walletType: WalletType = WalletType.values()[walletTypeInt]
+
+    val walletType: WalletType
+        get() = WalletType.values()[walletTypeInt]
 }

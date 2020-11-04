@@ -14,6 +14,7 @@ data class WalletAddressInfo(
     @Id
     var addressId: Long = 0
     var createTime: Long = 0
-    @Transient
-    val walletType: WalletType = WalletType.values()[walletTypeInt]
+
+    val walletType: WalletType
+        get() = WalletType.values()[walletTypeInt]
 }

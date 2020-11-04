@@ -5,6 +5,7 @@ import io.objectbox.Box
 import io.objectbox.BoxStore
 import wiki.scene.eth.wallet.core.db.table.MyObjectBox
 import wiki.scene.eth.wallet.core.db.table.MyWalletTable
+import wiki.scene.eth.wallet.core.db.table.OtherWalletInfo
 import wiki.scene.eth.wallet.core.db.table.WalletAddressInfo
 
 object ObjectBox {
@@ -20,5 +21,9 @@ object ObjectBox {
 
     fun getWalletAddressInfoManager(): Box<WalletAddressInfo> {
         return boxStore.boxFor(WalletAddressInfo::class.java)
+    }
+
+    fun getOtherWalletInfoManager(): Box<OtherWalletInfo> {
+        return boxStore.boxFor(OtherWalletInfo::class.java)
     }
 }
