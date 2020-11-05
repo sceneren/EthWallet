@@ -1,6 +1,7 @@
 package wiki.scene.eth.wallet
 
 import android.annotation.SuppressLint
+import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
@@ -16,6 +17,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         tvResult1.text = System.currentTimeMillis().toString()
+
+        verificationCode.setBgColor(Color.RED)
+        verificationCode.verificationCode = "asdf"
 
         btnCheckHasWallet.setOnClickListener {
             Log.e("开始时间：", System.currentTimeMillis().toString())

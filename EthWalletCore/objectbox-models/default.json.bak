@@ -5,7 +5,7 @@
   "entities": [
     {
       "id": "1:7822520801766377839",
-      "lastPropertyId": "6:9202417895678264282",
+      "lastPropertyId": "7:2435762084750109573",
       "name": "MyWalletTable",
       "properties": [
         {
@@ -43,6 +43,12 @@
           "id": "6:9202417895678264282",
           "name": "walletName",
           "type": 9
+        },
+        {
+          "id": "7:2435762084750109573",
+          "name": "walletTypeInt",
+          "type": 5,
+          "flags": 4
         }
       ],
       "relations": []
