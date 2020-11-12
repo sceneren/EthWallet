@@ -1,6 +1,5 @@
 package wiki.scene.eth.wallet.core.util
 
-import com.blankj.utilcode.util.EncryptUtils
 import io.github.novacrypto.bip39.MnemonicGenerator
 import io.github.novacrypto.bip39.SeedCalculator
 import io.github.novacrypto.bip39.Words
@@ -99,7 +98,7 @@ object WalletUtils {
         }.flatMap { fileDir ->
             //创建钱包
             val seed = MnemonicUtils.generateSeed(mnemonic, walletPassword)
-            val privateKey = ECKeyPair.create(EncryptUtils.encryptSHA256(seed))
+            val privateKey = ECKeyPair.create(Sha256.sha256(seed))
             val walletFile: String
             try {
                 walletFile = WalletUtils.generateWalletFile(walletPassword, privateKey, fileDir, false)
@@ -285,6 +284,10 @@ object WalletUtils {
         }.changeIOThread()
     }
 
+
+    /**
+     * 导出助记词
+     */
     fun exportMnemonic(walletId: Long, walletPassword: String): Observable<String> {
         return Observable.create<String> {
             try {
