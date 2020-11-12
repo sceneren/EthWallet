@@ -4,7 +4,7 @@ import android.content.Context
 import io.objectbox.Box
 import io.objectbox.BoxStore
 import wiki.scene.eth.wallet.core.db.table.MyObjectBox
-import wiki.scene.eth.wallet.core.db.table.MyWalletTable
+import wiki.scene.eth.wallet.core.db.table.WalletInfoTable
 import wiki.scene.eth.wallet.core.db.table.OtherWalletInfo
 import wiki.scene.eth.wallet.core.db.table.WalletAddressInfo
 
@@ -15,8 +15,8 @@ object ObjectBox {
         boxStore = MyObjectBox.builder().androidContext(context).build()
     }
 
-    fun getMyWalletTableManager(): Box<MyWalletTable> {
-        return boxStore.boxFor(MyWalletTable::class.java)
+    fun getWalletInfoManager(): Box<WalletInfoTable> {
+        return boxStore.boxFor(WalletInfoTable::class.java)
     }
 
     fun getWalletAddressInfoManager(): Box<WalletAddressInfo> {

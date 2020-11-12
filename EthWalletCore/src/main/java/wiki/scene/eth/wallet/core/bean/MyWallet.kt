@@ -1,7 +1,6 @@
 package wiki.scene.eth.wallet.core.bean
 
 import wiki.scene.eth.wallet.core.config.WalletType
-import wiki.scene.eth.wallet.core.util.Wallet
 
 /**
  *
@@ -14,7 +13,6 @@ import wiki.scene.eth.wallet.core.util.Wallet
  * @Version:        1.0.0
  */
 data class MyWallet(
-        val wallet: Wallet,
         val walletType: WalletType,
         var walletName: String = "",
         var walletDefault: Int = 0,

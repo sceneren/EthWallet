@@ -1,17 +1,21 @@
 package wiki.scene.eth.wallet
 
-import android.annotation.SuppressLint
 import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
+import com.blankj.utilcode.util.GsonUtils
 import kotlinx.android.synthetic.main.activity_main.*
 import wiki.scene.eth.wallet.core.config.WalletType
+import wiki.scene.eth.wallet.core.db.manager.WalletAddressDBManager
 import wiki.scene.eth.wallet.core.db.table.WalletAddressInfo
-import wiki.scene.eth.wallet.core.manager.WalletAddressManager
-import wiki.scene.eth.wallet.core.util.EthWalletUtils
+import wiki.scene.eth.wallet.core.util.WalletUtils
 
 class MainActivity : AppCompatActivity() {
+
+    private fun showLog(msg: String) {
+        Log.e("日志", msg)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,57 +26,58 @@ class MainActivity : AppCompatActivity() {
         verificationCode.verificationCode = "asdf"
 
         btnCheckHasWallet.setOnClickListener {
-            Log.e("开始时间：", System.currentTimeMillis().toString())
-            EthWalletUtils.hasWallet().subscribe({
-                Log.e("结束时间：", System.currentTimeMillis().toString())
-                Log.e("是否有钱包", it.toString())
-            }, { Log.e("错误", it.message!!) })
+            WalletUtils.hasWallet()
+                    .subscribe({
+                        showLog("是否有钱包：$it")
+                    }, {
+                        showLog(it.message!!)
+                    })
         }
 
         getCurrentWallet.setOnClickListener {
-            EthWalletUtils.getDefaultWallet()
+            WalletUtils.getDefaultWallet()
                     .subscribe({
-                        Log.e("钱包数据", it.toString())
-                        Log.e("address", it.toString())
+                        showLog("是否有钱包：$it")
                     }, {
-                        Log.e("错误", it.message!!)
+                        showLog(it.message!!)
                     })
         }
 
         createWallet.setOnClickListener {
-
-            EthWalletUtils.createMnemonic()
+            WalletUtils.createMnemonic()
                     .flatMap {
-                        return@flatMap EthWalletUtils.createEthWallet(WalletType.ETH_WALLET_TYPE_ETH, it, "ETH", "123", 0)
-                    }.flatMap { return@flatMap EthWalletUtils.getWalletList() }
-                    .subscribe {
-                        Log.e("钱包数据", it.size.toString())
-                        Log.e("address", it.toString())
-                    }
+                        showLog(it.toString())
+                        return@flatMap WalletUtils.createWallet(WalletType.ETH_WALLET_TYPE_ETH, "钱包${Math.random()}", "12345678", it.joinToString(" "), 0)
+                    }.subscribe({
+                        showLog(GsonUtils.toJson(it))
+                    }, {
+                        showLog(it.message!!)
+                    })
+
+
         }
         createMnemonic.setOnClickListener {
-            EthWalletUtils.getWalletListByType(WalletType.ETH_WALLET_TYPE_ETH)
-                    .subscribe {
-                        it.forEach { wallet -> Log.e("wallet", wallet.toString()) }
-                    }
+            WalletUtils.getWalletList()
+                    .subscribe({
+                        showLog(GsonUtils.toJson(it))
+                    }, {
+                        showLog(it.message!!)
+                    })
         }
 
         btnImportWalletByPrivateKey.setOnClickListener {
-            EthWalletUtils.importWalletByPrivateKey(WalletType.ETH_WALLET_TYPE_ETH, "123126734", "xxx", "11112222", 0)
-                    .subscribe {
-                        Log.e("xx", it.walletName)
-                    }
+
         }
 
 
         btnInsetAddress.setOnClickListener {
-            WalletAddressManager.addOrUpdateWalletAddress(WalletAddressInfo(0, WalletType.ETH_WALLET_TYPE_ETH.ordinal, "0x1231213", "备注"))
+            WalletAddressDBManager.addOrUpdateWalletAddress(WalletAddressInfo(0, WalletType.ETH_WALLET_TYPE_ETH.ordinal, "0x1231213", "备注"))
                     .subscribe {
                         Log.e("xx", it.toString())
                     }
         }
         btnDeleteAddress.setOnClickListener {
-            WalletAddressManager.deleteWalletAddressById(1L)
+            WalletAddressDBManager.deleteWalletAddressById(1L)
                     .subscribe({
                         Log.e("xx", it.toString())
                     }, {
@@ -81,7 +86,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnQueryAddress.setOnClickListener {
-            WalletAddressManager.queryWalletAddress()
+            WalletAddressDBManager.queryWalletAddress()
                     .subscribe({
                         Log.e("xx", it.toString())
                     }, {
@@ -92,14 +97,9 @@ class MainActivity : AppCompatActivity() {
         btnUpdateAddress.setOnClickListener {
             val addressInfo = WalletAddressInfo(0, 0, "xxx", "xxxxxxx")
             addressInfo.addressId = 1
-            WalletAddressManager.addOrUpdateWalletAddress(addressInfo)
+            WalletAddressDBManager.addOrUpdateWalletAddress(addressInfo)
         }
 
-
-    }
-
-    @SuppressLint("CheckResult")
-    private fun createMnemonic() {
 
     }
 

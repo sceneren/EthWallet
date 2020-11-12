@@ -1,4 +1,4 @@
-package wiki.scene.eth.wallet.core.manager
+package wiki.scene.eth.wallet.core.db.manager
 
 import io.reactivex.Observable
 import wiki.scene.eth.wallet.core.db.box.ObjectBox
@@ -16,7 +16,7 @@ import wiki.scene.eth.wallet.core.ext.changeIOThread
  * @UpdateRemark:   更新说明：
  * @Version:        1.0.0
  */
-object WalletAddressManager {
+object WalletAddressDBManager {
     /**
      * 添加一条钱包地址
      * 如果存在就是修改

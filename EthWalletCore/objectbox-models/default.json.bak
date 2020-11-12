@@ -4,56 +4,6 @@
   "_note3": "If you have VCS merge conflicts, you must resolve them according to ObjectBox docs.",
   "entities": [
     {
-      "id": "1:7822520801766377839",
-      "lastPropertyId": "7:2435762084750109573",
-      "name": "MyWalletTable",
-      "properties": [
-        {
-          "id": "1:4252385856476317639",
-          "name": "id",
-          "type": 6,
-          "flags": 1
-        },
-        {
-          "id": "2:5448668789698012374",
-          "name": "walletDefault",
-          "type": 5,
-          "flags": 4
-        },
-        {
-          "id": "3:4160198904024783224",
-          "name": "walletListImageRes",
-          "type": 5,
-          "flags": 4
-        },
-        {
-          "id": "4:2250489379308932542",
-          "name": "createTime",
-          "type": 6,
-          "flags": 4
-        },
-        {
-          "id": "5:8242771812250341325",
-          "name": "walletId",
-          "indexId": "1:8433368689860303898",
-          "type": 9,
-          "flags": 2048
-        },
-        {
-          "id": "6:9202417895678264282",
-          "name": "walletName",
-          "type": 9
-        },
-        {
-          "id": "7:2435762084750109573",
-          "name": "walletTypeInt",
-          "type": 5,
-          "flags": 4
-        }
-      ],
-      "relations": []
-    },
-    {
       "id": "2:4220674802828578612",
       "lastPropertyId": "6:4205908606997349669",
       "name": "WalletAddressInfo",
@@ -94,17 +44,121 @@
         }
       ],
       "relations": []
+    },
+    {
+      "id": "3:5027145138641654473",
+      "lastPropertyId": "3:30511665826838674",
+      "name": "OtherWalletInfo",
+      "properties": [
+        {
+          "id": "1:2002298239118504625",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:5964345841030114620",
+          "name": "address",
+          "type": 9
+        },
+        {
+          "id": "3:30511665826838674",
+          "name": "sy",
+          "type": 9
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "4:2006394774330892172",
+      "lastPropertyId": "11:3896758982315370212",
+      "name": "WalletInfo",
+      "properties": [
+        {
+          "id": "1:4891407811494813848",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:6716107436335938204",
+          "name": "walletDefault",
+          "type": 5,
+          "flags": 4
+        },
+        {
+          "id": "3:5940261123086651052",
+          "name": "walletListImageRes",
+          "type": 5,
+          "flags": 4
+        },
+        {
+          "id": "4:4141274901775692117",
+          "name": "createTime",
+          "type": 6,
+          "flags": 4
+        },
+        {
+          "id": "5:2010462986804919596",
+          "name": "walletName",
+          "type": 9
+        },
+        {
+          "id": "6:5619668668060141698",
+          "name": "walletTypeInt",
+          "type": 5,
+          "flags": 4
+        },
+        {
+          "id": "7:6434698224982421616",
+          "name": "walletMnemonic",
+          "type": 9
+        },
+        {
+          "id": "8:5497320363918626893",
+          "name": "walletPrivateKey",
+          "type": 9
+        },
+        {
+          "id": "9:4598916201829376416",
+          "name": "walletPublicKey",
+          "type": 9
+        },
+        {
+          "id": "10:6692988392039613206",
+          "name": "walletAddress",
+          "type": 9
+        },
+        {
+          "id": "11:3896758982315370212",
+          "name": "walletPassword",
+          "type": 9
+        }
+      ],
+      "relations": []
     }
   ],
-  "lastEntityId": "2:4220674802828578612",
+  "lastEntityId": "4:2006394774330892172",
   "lastIndexId": "1:8433368689860303898",
   "lastRelationId": "0:0",
   "lastSequenceId": "0:0",
   "modelVersion": 5,
   "modelVersionParserMinimum": 5,
-  "retiredEntityUids": [],
-  "retiredIndexUids": [],
-  "retiredPropertyUids": [],
+  "retiredEntityUids": [
+    7822520801766377839
+  ],
+  "retiredIndexUids": [
+    8433368689860303898
+  ],
+  "retiredPropertyUids": [
+    4252385856476317639,
+    5448668789698012374,
+    4160198904024783224,
+    2250489379308932542,
+    8242771812250341325,
+    9202417895678264282,
+    2435762084750109573
+  ],
   "retiredRelationUids": [],
   "version": 1
 }
