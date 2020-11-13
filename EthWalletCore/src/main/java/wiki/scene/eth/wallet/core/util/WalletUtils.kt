@@ -69,7 +69,6 @@ object WalletUtils {
         }.changeIOThread()
     }
 
-
     /**
      * @param walletName 钱包名称
      * @param walletPassword 钱包密码
@@ -123,12 +122,11 @@ object WalletUtils {
 
     }
 
-
     /**
      * 根据助记词导入钱包
      */
-    fun importWalletByMnemonic(walletType: WalletType, walletName: String, walletPassword: String, mnemonic: String, walletListImageRes: Int) {
-        Observable.create<Boolean> {
+    fun importWalletByMnemonic(walletType: WalletType, walletName: String, walletPassword: String, mnemonic: String, walletListImageRes: Int): Observable<Boolean> {
+        return Observable.create<Boolean> {
             if (mnemonic.isEmpty()) {
                 it.onNext(true)
                 it.onComplete()
@@ -196,7 +194,6 @@ object WalletUtils {
             }
         }.changeIOThread()
     }
-
 
     /**
      * 根据类型获取钱包列表
@@ -283,7 +280,6 @@ object WalletUtils {
             }
         }.changeIOThread()
     }
-
 
     /**
      * 导出助记词
