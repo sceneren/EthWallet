@@ -14,6 +14,10 @@ android {
         versionName VERSION_NAME
     }
 
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -46,7 +50,7 @@ publish {
     userOrg = 'scene'
     groupId = 'wiki.scene.eth.wallet'
     artifactId = 'EthWalletCore'
-    publishVersion = '1.2.4'
+    publishVersion = '1.2.5'
     desc = 'ETH wallet base core'
     website = 'https://github.com/sceneren/EthWallet'
 }

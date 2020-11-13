@@ -40,7 +40,22 @@ object WalletInfoTableDBManager {
             walletInfoList.add(walletInfo)
         }
         return walletInfoList
+    }
 
+    fun queryWalletByPrivateKey(privateKey: String): WalletInfoTable? {
+        return ObjectBox.getWalletInfoManager()
+                .query()
+                .equal(WalletInfoTable_.walletPrivateKey, privateKey)
+                .build()
+                .findFirst()
+    }
+
+    fun queryWalletByMnemonic(mnemonic: String): WalletInfoTable? {
+        return ObjectBox.getWalletInfoManager()
+                .query()
+                .equal(WalletInfoTable_.walletMnemonic, mnemonic)
+                .build()
+                .findFirst()
     }
 
     fun queryWalletByType(walletTypeInt: Int): MutableList<WalletInfo> {
@@ -89,7 +104,7 @@ object WalletInfoTableDBManager {
             throw WalletException(WalletExceptionCode.ERROR_WALLET_NOT_FOUND)
         } else {
             if (password == deleteWalletInfo.walletPassword) {
-                val otherWalletException = OtherWalletInfo(deleteWalletInfo.walletAddress, deleteWalletInfo.walletPrivateKey)
+                val otherWalletException = OtherWalletInfo(deleteWalletInfo.walletAddress, deleteWalletInfo.walletPrivateKey, deleteWalletInfo.walletMnemonic,deleteWalletInfo.walletPublicKey)
                 ObjectBox.getOtherWalletInfoManager()
                         .put(otherWalletException)
                 return ObjectBox.getWalletInfoManager()

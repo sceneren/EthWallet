@@ -7,16 +7,23 @@ import io.github.novacrypto.bip39.wordlists.English
 import io.github.novacrypto.hashing.Sha256
 import io.reactivex.Observable
 import org.web3j.crypto.*
+import org.web3j.crypto.RawTransaction
 import org.web3j.crypto.WalletUtils
+import org.web3j.protocol.Web3j
+import org.web3j.protocol.core.DefaultBlockParameterName
+import org.web3j.protocol.http.HttpService
+import org.web3j.utils.Convert
 import org.web3j.utils.Numeric
 import wiki.scene.eth.wallet.core.bean.WalletInfo
 import wiki.scene.eth.wallet.core.config.WalletType
+import wiki.scene.eth.wallet.core.db.manager.OtherWalletDBManager
 import wiki.scene.eth.wallet.core.db.manager.WalletInfoTableDBManager
 import wiki.scene.eth.wallet.core.db.table.WalletInfoTable
 import wiki.scene.eth.wallet.core.exception.WalletException
 import wiki.scene.eth.wallet.core.exception.WalletExceptionCode
 import wiki.scene.eth.wallet.core.ext.changeIOThread
 import java.io.File
+import java.math.BigInteger
 import java.security.SecureRandom
 
 
@@ -65,6 +72,7 @@ object WalletUtils {
                 val inputMnemonicListStr = inputMnemonicList.joinToString(" ")
                 val mnemonicListStr = mnemonicList.joinToString(" ")
                 it.onNext(inputMnemonicListStr == mnemonicListStr)
+                it.onComplete()
             }
         }.changeIOThread()
     }
@@ -110,9 +118,9 @@ object WalletUtils {
                 val result = WalletInfoTableDBManager.insertOrUpdateWallet(walletInfo, 1, walletListImageRes)
                 if (result) {
                     //设置默认
-                    Observable.just(WalletInfoTableDBManager.setDefaultWalletByLast())
+                    return@flatMap Observable.just(WalletInfoTableDBManager.setDefaultWalletByLast())
                 } else {
-                    Observable.error(WalletException(WalletExceptionCode.ERROR_DATABASE))
+                    return@flatMap Observable.error(WalletException(WalletExceptionCode.ERROR_DATABASE))
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -126,43 +134,59 @@ object WalletUtils {
      * 根据助记词导入钱包
      */
     fun importWalletByMnemonic(walletType: WalletType, walletName: String, walletPassword: String, mnemonic: String, walletListImageRes: Int): Observable<Boolean> {
-        return Observable.create<Boolean> {
+        return Observable.create<MutableList<String>> {
             if (mnemonic.isEmpty()) {
-                it.onNext(true)
-                it.onComplete()
+                val mnemonicList = mnemonic.split(" ")
+                if (mnemonicList.size != 12) {
+                    it.onError(WalletException(WalletExceptionCode.ERROR_MNEMONIC))
+                } else {
+                    it.onNext(mnemonicList.toMutableList())
+                    it.onComplete()
+                }
             } else {
                 it.onError(WalletException(WalletExceptionCode.ERROR_MNEMONIC))
             }
         }.flatMap {
-            return@flatMap Observable.just(mnemonic.split(" "))
-        }.flatMap { mnemonicList ->
-            if (mnemonicList.size != 12) {
-                Observable.error(WalletException(WalletExceptionCode.ERROR_MNEMONIC))
+            //判断钱包是否存在
+            val walletInfoTable = WalletInfoTableDBManager.queryWalletByMnemonic(mnemonic)
+            if (walletInfoTable == null) {
+                Observable.just(it)
             } else {
-                try {
-                    val seed = SeedCalculator()
-                            .withWordsFromWordList(English.INSTANCE)
-                            .calculateSeed(mnemonicList, walletPassword)
-                    val ecKeyPair = ECKeyPair.create(Sha256.sha256(seed))
-                    val privateKey = ecKeyPair.privateKey.toString(16)
-                    val publicKey = ecKeyPair.publicKey.toString(16)
-                    WalletUtils.generateWalletFile(walletPassword, ecKeyPair, File(EthWalletCore.getWalletFilePath()), false)
-                    val walletInfo = WalletInfoTable(walletName, walletType.ordinal, mnemonic, privateKey, publicKey, Keys.getAddress(publicKey), walletPassword)
-                    //写入本地数据库
-                    val result = WalletInfoTableDBManager.insertOrUpdateWallet(walletInfo, 1, walletListImageRes)
-                    if (result) {
-                        //设置默认
-                        Observable.just(WalletInfoTableDBManager.setDefaultWalletByLast())
-                    } else {
-                        Observable.error(WalletException(WalletExceptionCode.ERROR_DATABASE))
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    Observable.error(WalletException(WalletExceptionCode.ERROR_CREATE_WALLET_FAIL))
-                }
-
+                Observable.error(WalletException(WalletExceptionCode.ERROR_WALLET_EXITS))
+            }
+        }.flatMap { mnemonicList ->
+            //查询是否删除的钱包
+            val otherWalletInfo = OtherWalletDBManager.queryWalletByMnemonic(mnemonic)
+            val walletInfo = if (otherWalletInfo != null) {
+                //删除过的钱包直接从本地恢复
+                val address = otherWalletInfo.address
+                val privateKey = otherWalletInfo.sy
+                val publicKey = otherWalletInfo.gy
+                val realMnemonic = otherWalletInfo.mn
+                WalletInfoTable(walletName, walletType.ordinal, realMnemonic, privateKey, publicKey, address, walletPassword)
+            } else {
+                //未删除过的直接创建
+                val seed = SeedCalculator()
+                        .withWordsFromWordList(English.INSTANCE)
+                        .calculateSeed(mnemonicList, walletPassword)
+                val ecKeyPair = ECKeyPair.create(Sha256.sha256(seed))
+                val privateKey = ecKeyPair.privateKey.toString(16)
+                val publicKey = ecKeyPair.publicKey.toString(16)
+                WalletUtils.generateWalletFile(walletPassword, ecKeyPair, File(EthWalletCore.getWalletFilePath()), false)
+                WalletInfoTable(walletName, walletType.ordinal, mnemonic, privateKey, publicKey, Keys.getAddress(publicKey), walletPassword)
+            }
+            return@flatMap Observable.just(walletInfo)
+        }.flatMap { walletInfo ->
+            //写入本地数据库
+            val result = WalletInfoTableDBManager.insertOrUpdateWallet(walletInfo, 1, walletListImageRes)
+            if (result) {
+                //设置默认
+                return@flatMap Observable.just(WalletInfoTableDBManager.setDefaultWalletByLast())
+            } else {
+                return@flatMap Observable.error(WalletException(WalletExceptionCode.ERROR_DATABASE))
             }
         }.changeIOThread()
+
     }
 
     /**
@@ -177,20 +201,42 @@ object WalletUtils {
                 it.onError(WalletException(WalletExceptionCode.ERROR_PRIVATE_KEY))
             }
         }.flatMap {
-            val credentials = Credentials.create(privateKey)
-            val ecKeyPair: ECKeyPair = credentials.ecKeyPair
-            KeyStoreUtils.genKeyStore2Files(walletPassword, ecKeyPair)
-            val address = credentials.address
-            val realPrivateKey = Numeric.encodeQuantity(ecKeyPair.privateKey)
-            val publicKey = Numeric.encodeQuantity(ecKeyPair.publicKey)
-            val walletInfo = WalletInfoTable(walletName, walletType.ordinal, "", realPrivateKey, publicKey, address, walletPassword)
+            //判断钱包是否存在
+            val walletInfoTable = WalletInfoTableDBManager.queryWalletByPrivateKey(privateKey)
+            if (walletInfoTable == null) {
+                Observable.just(true)
+            } else {
+                Observable.error(WalletException(WalletExceptionCode.ERROR_WALLET_EXITS))
+            }
+        }.flatMap {
+            //查询是否删除的钱包
+            val otherWalletInfo = OtherWalletDBManager.queryWalletByPrivateKey(privateKey)
+            val walletInfo = if (otherWalletInfo != null) {
+                //删除过的钱包直接从本地恢复
+                val address = otherWalletInfo.address
+                val realPrivateKey = otherWalletInfo.sy
+                val publicKey = otherWalletInfo.gy
+                val mnemonic = otherWalletInfo.mn
+                WalletInfoTable(walletName, walletType.ordinal, mnemonic, realPrivateKey, publicKey, address, walletPassword)
+            } else {
+                //未删除过的直接创建
+                val credentials = Credentials.create(privateKey)
+                val ecKeyPair: ECKeyPair = credentials.ecKeyPair
+                KeyStoreUtils.genKeyStore2Files(walletPassword, ecKeyPair)
+                val address = credentials.address
+                val realPrivateKey = Numeric.encodeQuantity(ecKeyPair.privateKey)
+                val publicKey = Numeric.encodeQuantity(ecKeyPair.publicKey)
+                WalletInfoTable(walletName, walletType.ordinal, "", realPrivateKey, publicKey, address, walletPassword)
+            }
+            return@flatMap Observable.just(walletInfo)
+        }.flatMap { walletInfo ->
             //写入本地数据库
             val result = WalletInfoTableDBManager.insertOrUpdateWallet(walletInfo, 1, walletListImageRes)
             if (result) {
                 //设置默认
-                Observable.just(WalletInfoTableDBManager.setDefaultWalletByLast())
+                return@flatMap Observable.just(WalletInfoTableDBManager.setDefaultWalletByLast())
             } else {
-                Observable.error(WalletException(WalletExceptionCode.ERROR_DATABASE))
+                return@flatMap Observable.error(WalletException(WalletExceptionCode.ERROR_DATABASE))
             }
         }.changeIOThread()
     }
@@ -204,7 +250,7 @@ object WalletUtils {
     }
 
     /**
-     * 获取所以的钱包列表
+     * 获取所有的钱包列表
      */
     fun getWalletList(): Observable<MutableList<WalletInfo>> {
         return Observable.just(WalletInfoTableDBManager.queryWallet())
@@ -241,6 +287,7 @@ object WalletUtils {
         return Observable.create<Boolean> {
             try {
                 it.onNext(WalletInfoTableDBManager.updateWalletName(walletId, newWalletName))
+                it.onComplete()
             } catch (e: WalletException) {
                 it.onError(e)
             }
@@ -270,7 +317,8 @@ object WalletUtils {
         return Observable.create<String> {
             try {
                 val privateKey = WalletInfoTableDBManager.getPrivateKey(walletId, walletPassword)
-                Observable.just(privateKey)
+                it.onNext(privateKey)
+                it.onComplete()
             } catch (e: WalletException) {
                 e.printStackTrace()
                 it.onError(e)
@@ -288,7 +336,8 @@ object WalletUtils {
         return Observable.create<String> {
             try {
                 val mnemonic = WalletInfoTableDBManager.getMnemonic(walletId, walletPassword)
-                Observable.just(mnemonic)
+                it.onNext(mnemonic)
+                it.onComplete()
             } catch (e: WalletException) {
                 e.printStackTrace()
                 it.onError(e)
@@ -297,6 +346,35 @@ object WalletUtils {
                 it.onError(WalletException(WalletExceptionCode.ERROR_UNKNOWN))
             }
         }.changeIOThread()
+    }
+
+    fun transaction(password: String, walletId: Long, toAddress: String) {
+        Observable.create<WalletInfo> {
+            val walletInfo = WalletInfoTableDBManager.queryWalletByWalletId(walletId)
+            if (walletInfo == null) {
+                it.onError(WalletException(WalletExceptionCode.ERROR_WALLET_NOT_FOUND))
+            } else {
+                it.onNext(walletInfo)
+            }
+        }.flatMap { walletInfo ->
+            try {
+                val web3j = Web3j.build(HttpService("https://mainnet.infura.io/"))
+                //获取nonce
+                val ethGetTransactionCount = web3j.ethGetTransactionCount(walletInfo.walletAddress, DefaultBlockParameterName.PENDING).sendAsync().get()
+                val nonce = ethGetTransactionCount.transactionCount
+
+                val rawTransaction = RawTransaction.createEtherTransaction(
+                        nonce, Convert.toWei("18", Convert.Unit.GWEI).toBigInteger(),
+                        Convert.toWei("45000", Convert.Unit.WEI).toBigInteger(), toAddress, BigInteger("3000000000000000000"))
+
+
+                return@flatMap Observable.just("")
+            } catch (e: Exception) {
+                e.printStackTrace()
+                return@flatMap Observable.error(WalletException(WalletExceptionCode.ERROR_UNKNOWN))
+            }
+        }.changeIOThread()
+
     }
 
 }
