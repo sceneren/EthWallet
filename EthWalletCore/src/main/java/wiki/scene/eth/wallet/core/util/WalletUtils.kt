@@ -195,8 +195,12 @@ object WalletUtils {
     fun importWalletByPrivateKey(walletType: WalletType, walletName: String, walletPassword: String, privateKey: String, walletListImageRes: Int): Observable<Boolean> {
         return Observable.create<Boolean> {
             if (privateKey.isEmpty()) {
-                it.onNext(true)
-                it.onComplete()
+                if (WalletUtils.isValidPrivateKey(privateKey)) {
+                    it.onNext(true)
+                    it.onComplete()
+                } else {
+                    it.onError(WalletException(WalletExceptionCode.ERROR_PRIVATE_KEY))
+                }
             } else {
                 it.onError(WalletException(WalletExceptionCode.ERROR_PRIVATE_KEY))
             }
