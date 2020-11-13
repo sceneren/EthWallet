@@ -135,7 +135,7 @@ object WalletUtils {
      */
     fun importWalletByMnemonic(walletType: WalletType, walletName: String, walletPassword: String, mnemonic: String, walletListImageRes: Int): Observable<Boolean> {
         return Observable.create<MutableList<String>> {
-            if (mnemonic.isEmpty()) {
+            if (mnemonic.isNotEmpty()) {
                 val mnemonicList = mnemonic.split(" ")
                 if (mnemonicList.size != 12) {
                     it.onError(WalletException(WalletExceptionCode.ERROR_MNEMONIC))
@@ -194,7 +194,7 @@ object WalletUtils {
      */
     fun importWalletByPrivateKey(walletType: WalletType, walletName: String, walletPassword: String, privateKey: String, walletListImageRes: Int): Observable<Boolean> {
         return Observable.create<Boolean> {
-            if (privateKey.isEmpty()) {
+            if (privateKey.isNotEmpty()) {
                 if (WalletUtils.isValidPrivateKey(privateKey)) {
                     it.onNext(true)
                     it.onComplete()
