@@ -5,10 +5,12 @@ import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import com.blankj.utilcode.util.GsonUtils
+import com.blankj.utilcode.util.LogUtils
 import kotlinx.android.synthetic.main.activity_main.*
 import wiki.scene.eth.wallet.core.config.WalletType
 import wiki.scene.eth.wallet.core.db.manager.WalletAddressDBManager
 import wiki.scene.eth.wallet.core.db.table.WalletAddressInfo
+import wiki.scene.eth.wallet.core.util.WalletSignUtil
 import wiki.scene.eth.wallet.core.util.WalletUtils
 
 class MainActivity : AppCompatActivity() {
@@ -26,12 +28,15 @@ class MainActivity : AppCompatActivity() {
         verificationCode.verificationCode = "asdf"
 
         btnCheckHasWallet.setOnClickListener {
-            WalletUtils.hasWallet()
-                    .subscribe({
-                        showLog("是否有钱包：$it")
-                    }, {
-                        showLog(it.message!!)
-                    })
+//            WalletUtils.hasWallet()
+//                    .subscribe({
+//                        showLog("是否有钱包：$it")
+//                    }, {
+//                        showLog(it.message!!)
+//                    })
+
+            val result = WalletSignUtil.sign("陈老板测试", "0xbf534b8857e824171f04528aeddea0990a5748b076e839b97ba91fb1010d7ef6")
+            LogUtils.e(result)
         }
 
         getCurrentWallet.setOnClickListener {
