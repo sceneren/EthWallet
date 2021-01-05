@@ -113,7 +113,7 @@ object WalletUtils {
                 val credentials = WalletUtils.loadBip39Credentials(walletPassword, bip39Wallet.mnemonic)
                 val realPrivateKey = Numeric.encodeQuantity(credentials.ecKeyPair.privateKey)
                 val publicKey = Numeric.encodeQuantity(credentials.ecKeyPair.publicKey)
-                val walletInfo = WalletInfoTable(walletName, walletType.ordinal, mnemonic, realPrivateKey, publicKey, credentials.address, walletPassword)
+                val walletInfo = WalletInfoTable(walletName, walletType.ordinal, mnemonic, realPrivateKey, publicKey, if (walletType == WalletType.ETH_WALLET_TYPE_ETH) getETHAddress(credentials.address) else getSETAddress(credentials.address), walletPassword)
                 //写入本地数据库
                 val result = WalletInfoTableDBManager.insertOrUpdateWallet(walletInfo, 1, walletListImageRes)
                 if (result) {
@@ -163,7 +163,7 @@ object WalletUtils {
                 val privateKey = otherWalletInfo.sy
                 val publicKey = otherWalletInfo.gy
                 val realMnemonic = otherWalletInfo.mn
-                WalletInfoTable(walletName, walletType.ordinal, realMnemonic, privateKey, publicKey, address, walletPassword)
+                WalletInfoTable(walletName, walletType.ordinal, realMnemonic, privateKey, publicKey, if (walletType == WalletType.ETH_WALLET_TYPE_ETH) getETHAddress(address) else getSETAddress(address), walletPassword)
             } else {
                 //未删除过的直接创建
                 val seed = SeedCalculator()
@@ -173,7 +173,8 @@ object WalletUtils {
                 val privateKey = ecKeyPair.privateKey.toString(16)
                 val publicKey = ecKeyPair.publicKey.toString(16)
                 WalletUtils.generateWalletFile(walletPassword, ecKeyPair, File(EthWalletCore.getWalletFilePath()), false)
-                WalletInfoTable(walletName, walletType.ordinal, mnemonic, privateKey, publicKey, Keys.getAddress(publicKey), walletPassword)
+                val address = Keys.getAddress(publicKey)
+                WalletInfoTable(walletName, walletType.ordinal, mnemonic, privateKey, publicKey, if (walletType == WalletType.ETH_WALLET_TYPE_ETH) getETHAddress(address) else getSETAddress(address), walletPassword)
             }
             return@flatMap Observable.just(walletInfo)
         }.flatMap { walletInfo ->
@@ -221,7 +222,7 @@ object WalletUtils {
                 val realPrivateKey = otherWalletInfo.sy
                 val publicKey = otherWalletInfo.gy
                 val mnemonic = otherWalletInfo.mn
-                WalletInfoTable(walletName, walletType.ordinal, mnemonic, realPrivateKey, publicKey, address, walletPassword)
+                WalletInfoTable(walletName, walletType.ordinal, mnemonic, realPrivateKey, publicKey, if (walletType == WalletType.ETH_WALLET_TYPE_ETH) getETHAddress(address) else getSETAddress(address), walletPassword)
             } else {
                 //未删除过的直接创建
                 val credentials = Credentials.create(privateKey)
@@ -230,7 +231,7 @@ object WalletUtils {
                 val address = credentials.address
                 val realPrivateKey = Numeric.encodeQuantity(ecKeyPair.privateKey)
                 val publicKey = Numeric.encodeQuantity(ecKeyPair.publicKey)
-                WalletInfoTable(walletName, walletType.ordinal, "", realPrivateKey, publicKey, address, walletPassword)
+                WalletInfoTable(walletName, walletType.ordinal, "", realPrivateKey, publicKey, if (walletType == WalletType.ETH_WALLET_TYPE_ETH) getETHAddress(address) else getSETAddress(address), walletPassword)
             }
             return@flatMap Observable.just(walletInfo)
         }.flatMap { walletInfo ->
@@ -379,6 +380,41 @@ object WalletUtils {
             }
         }.changeIOThread()
 
+    }
+
+
+    /**
+     * 校验是否是SET地址
+     */
+    fun isSETValidAddress(input: String?): Boolean {
+        return if (input == null || !input.startsWith("SET")) false else input.length == 36
+    }
+
+    /**
+     * ETH地址转SET地址
+     */
+    fun getSETAddress(ethAddress: String): String {
+        if (isSETValidAddress(ethAddress)) {
+            return ethAddress
+        } else {
+            return if(ethAddress.startsWith("0x")){
+                "SET" + Base58.encode(ethAddress.substring(2, 26).toByteArray())
+            }else{
+                "SET" + Base58.encode(ethAddress.substring(0, 24).toByteArray())
+            }
+        }
+    }
+
+    fun isETHValidAddress(input: String?): Boolean {
+        return if (input == null || !input.startsWith("0x")) false else WalletUtils.isValidAddress(input)
+    }
+
+    fun getETHAddress(address: String): String {
+        if (isETHValidAddress(address)) {
+            return address
+        } else {
+            return "0x$address"
+        }
     }
 
 }

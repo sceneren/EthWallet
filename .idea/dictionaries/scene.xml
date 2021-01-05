@@ -2,6 +2,7 @@
   <dictionary name="scene">
     <words>
       <w>ethereum</w>
+      <w>mmkv</w>
     </words>
   </dictionary>
 </component>

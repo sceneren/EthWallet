@@ -63,4 +63,7 @@ dependencies {
     //分包
     implementation 'androidx.multidex:multidex:2.0.1'
     implementation 'com.blankj:utilcodex:1.30.4'
+
+    implementation 'com.tencent:mmkv-static:1.2.7'
+    implementation 'com.orhanobut:hawk:2.0.1'
 }
