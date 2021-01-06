@@ -82,6 +82,16 @@ object WalletInfoTableDBManager {
         }
     }
 
+    fun checkPassword(walletAddress: String, password: String): Boolean {
+        val info = ObjectBox.getWalletInfoManager()
+                .query()
+                .equal(WalletInfoTable_.walletAddress, walletAddress)
+                .equal(WalletInfoTable_.walletPassword, password)
+                .build()
+                .findFirst()
+        return info != null
+    }
+
     fun insertOrUpdateWallet(walletInfoTable: WalletInfoTable, walletDefault: Int, walletListImageRes: Int): Boolean {
         walletInfoTable.walletDefault = walletDefault
         walletInfoTable.walletListImageRes = walletListImageRes
@@ -104,7 +114,7 @@ object WalletInfoTableDBManager {
             throw WalletException(WalletExceptionCode.ERROR_WALLET_NOT_FOUND)
         } else {
             if (password == deleteWalletInfo.walletPassword) {
-                val otherWalletException = OtherWalletInfo(deleteWalletInfo.walletAddress, deleteWalletInfo.walletPrivateKey, deleteWalletInfo.walletMnemonic,deleteWalletInfo.walletPublicKey)
+                val otherWalletException = OtherWalletInfo(deleteWalletInfo.walletAddress, deleteWalletInfo.walletPrivateKey, deleteWalletInfo.walletMnemonic, deleteWalletInfo.walletPublicKey)
                 ObjectBox.getOtherWalletInfoManager()
                         .put(otherWalletException)
                 return ObjectBox.getWalletInfoManager()

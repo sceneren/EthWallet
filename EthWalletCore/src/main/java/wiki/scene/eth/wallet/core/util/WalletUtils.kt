@@ -382,6 +382,10 @@ object WalletUtils {
 
     }
 
+    fun checkPassword(address: String, password: String): Observable<Boolean> {
+        return Observable.just(WalletInfoTableDBManager.checkPassword(address, password))
+    }
+
 
     /**
      * 校验是否是SET地址
@@ -397,9 +401,9 @@ object WalletUtils {
         if (isSETValidAddress(ethAddress)) {
             return ethAddress
         } else {
-            return if(ethAddress.startsWith("0x")){
+            return if (ethAddress.startsWith("0x")) {
                 "SET" + Base58.encode(ethAddress.substring(2, 26).toByteArray())
-            }else{
+            } else {
                 "SET" + Base58.encode(ethAddress.substring(0, 24).toByteArray())
             }
         }
