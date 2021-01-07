@@ -113,15 +113,21 @@ object WalletInfoTableDBManager {
         if (deleteWalletInfo == null) {
             throw WalletException(WalletExceptionCode.ERROR_WALLET_NOT_FOUND)
         } else {
-            if (password == deleteWalletInfo.walletPassword) {
-                val otherWalletException = OtherWalletInfo(deleteWalletInfo.walletAddress, deleteWalletInfo.walletPrivateKey, deleteWalletInfo.walletMnemonic, deleteWalletInfo.walletPublicKey)
-                ObjectBox.getOtherWalletInfoManager()
-                        .put(otherWalletException)
-                return ObjectBox.getWalletInfoManager()
-                        .remove(walletId)
+            if (deleteWalletInfo.walletDefault == 1) {
+                throw WalletException(WalletExceptionCode.ERROR_CAN_NOT_DELETE_DEFAULT_WALLET)
             } else {
-                throw WalletException(WalletExceptionCode.ERROR_PASSWORD)
+                if (password == deleteWalletInfo.walletPassword) {
+                    val otherWalletException = OtherWalletInfo(deleteWalletInfo.walletAddress, deleteWalletInfo.walletPrivateKey, deleteWalletInfo.walletMnemonic, deleteWalletInfo.walletPublicKey)
+                    ObjectBox.getOtherWalletInfoManager()
+                            .put(otherWalletException)
+                    return ObjectBox.getWalletInfoManager()
+                            .remove(walletId)
+                } else {
+                    throw WalletException(WalletExceptionCode.ERROR_PASSWORD)
+                }
             }
+
+
         }
 
     }

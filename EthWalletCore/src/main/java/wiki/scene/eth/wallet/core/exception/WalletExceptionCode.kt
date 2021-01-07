@@ -47,4 +47,7 @@ object WalletExceptionCode {
     //写入数据库失败
     const val ERROR_DATABASE = "8011"
 
+    //不能删除默认钱包
+    const val ERROR_CAN_NOT_DELETE_DEFAULT_WALLET = "8012"
+
 }
