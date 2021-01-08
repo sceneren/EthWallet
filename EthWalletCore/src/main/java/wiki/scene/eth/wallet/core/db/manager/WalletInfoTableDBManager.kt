@@ -28,6 +28,15 @@ object WalletInfoTableDBManager {
                 .count()
     }
 
+    fun checkMnemonicRepeat(mnemonic: String): Boolean {
+        val list = ObjectBox.getWalletInfoManager()
+                .query()
+                .equal(WalletInfoTable_.walletMnemonic, mnemonic)
+                .build()
+                .find()
+        return list.isNotEmpty()
+    }
+
     fun queryWallet(): MutableList<WalletInfo> {
         val list = ObjectBox.getWalletInfoManager()
                 .query()

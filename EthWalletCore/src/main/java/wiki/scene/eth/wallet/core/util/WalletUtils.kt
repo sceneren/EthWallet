@@ -83,7 +83,15 @@ object WalletUtils {
      * @param mnemonic 助记词
      */
     fun createWallet(walletType: WalletType, walletName: String, walletPassword: String, mnemonic: String, walletListImageRes: Int): Observable<Boolean> {
-        return Observable.create<File> {
+        return Observable.create<Boolean> {
+            val isRepeat = WalletInfoTableDBManager.checkMnemonicRepeat(mnemonic)
+            if (isRepeat) {
+                it.onNext(isRepeat)
+                it.onComplete()
+            } else {
+                it.onError(WalletException(WalletExceptionCode.ERROR_WALLET_EXITS))
+            }
+        }.flatMap {
             //创建钱包目录
             try {
                 val fileDir = File(EthWalletCore.getWalletFilePath())
@@ -93,14 +101,13 @@ object WalletUtils {
                     true
                 }
                 if (result) {
-                    it.onNext(fileDir)
-                    it.onComplete()
+                    return@flatMap Observable.just(fileDir)
                 } else {
-                    it.onError(WalletException(WalletExceptionCode.ERROR_CREATE_WALLET_FILE_FAIL))
+                    return@flatMap Observable.error(WalletException(WalletExceptionCode.ERROR_CREATE_WALLET_FILE_FAIL))
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                it.onError(WalletException(WalletExceptionCode.ERROR_PERMISSION_DEFINE))
+                return@flatMap Observable.error(WalletException(WalletExceptionCode.ERROR_PERMISSION_DEFINE))
             }
         }.flatMap { fileDir ->
             //创建钱包
