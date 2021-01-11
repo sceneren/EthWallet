@@ -85,7 +85,7 @@ object WalletUtils {
     fun createWallet(walletType: WalletType, walletName: String, walletPassword: String, mnemonic: String, walletListImageRes: Int): Observable<Boolean> {
         return Observable.create<Boolean> {
             val isRepeat = WalletInfoTableDBManager.checkMnemonicRepeat(mnemonic)
-            if (isRepeat) {
+            if (!isRepeat) {
                 it.onNext(isRepeat)
                 it.onComplete()
             } else {
