@@ -52,9 +52,13 @@ object WalletInfoTableDBManager {
     }
 
     fun queryWalletByPrivateKey(privateKey: String): WalletInfoTable? {
+        var sy = privateKey
+        if (sy.startsWith("0x")) {
+            sy = sy.substring(2, sy.length)
+        }
         return ObjectBox.getWalletInfoManager()
                 .query()
-                .equal(WalletInfoTable_.walletPrivateKey, privateKey)
+                .equal(WalletInfoTable_.walletPrivateKey, sy)
                 .build()
                 .findFirst()
     }
@@ -107,6 +111,11 @@ object WalletInfoTableDBManager {
         if (walletInfoTable.id == 0L) {
             walletInfoTable.createTime = System.currentTimeMillis()
         }
+        var sy = walletInfoTable.walletPrivateKey
+        if (sy.startsWith("0x")) {
+            sy = sy.substring(2)
+        }
+        walletInfoTable.walletPrivateKey = sy
         val count = ObjectBox.getWalletInfoManager()
                 .put(walletInfoTable)
         return count > 0
