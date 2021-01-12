@@ -179,7 +179,11 @@ object WalletUtils {
                 val ecKeyPair = ECKeyPair.create(Sha256.sha256(seed))
                 val privateKey = ecKeyPair.privateKey.toString(16)
                 val publicKey = ecKeyPair.publicKey.toString(16)
-                WalletUtils.generateWalletFile(walletPassword, ecKeyPair, File(EthWalletCore.getWalletFilePath()), false)
+                val fileDir = File(EthWalletCore.getWalletFilePath())
+                if (!fileDir.exists()) {
+                    fileDir.mkdirs()
+                }
+                WalletUtils.generateWalletFile(walletPassword, ecKeyPair, fileDir, false)
                 val address = Keys.getAddress(publicKey)
                 WalletInfoTable(walletName, walletType.ordinal, mnemonic, privateKey, publicKey, if (walletType == WalletType.ETH_WALLET_TYPE_ETH) getETHAddress(address) else getSETAddress(address), walletPassword)
             }

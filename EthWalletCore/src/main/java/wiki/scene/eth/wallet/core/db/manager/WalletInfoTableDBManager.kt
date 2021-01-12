@@ -252,4 +252,15 @@ object WalletInfoTableDBManager {
         }
     }
 
+
+    fun checkHasMnemonic(walletId: Long): Boolean {
+        val walletInfo = ObjectBox.getWalletInfoManager()
+                .get(walletId)
+        if (walletInfo == null) {
+            throw WalletException(WalletExceptionCode.ERROR_WALLET_NOT_FOUND)
+        } else {
+            return walletInfo.walletMnemonic.isNotEmpty()
+        }
+    }
+
 }
