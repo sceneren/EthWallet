@@ -14,6 +14,7 @@ import wiki.scene.eth.wallet.core.config.WalletType
 import wiki.scene.eth.wallet.core.db.manager.WalletAddressDBManager
 import wiki.scene.eth.wallet.core.db.table.WalletAddressInfo
 import wiki.scene.eth.wallet.core.ext.changeIOThread
+import wiki.scene.eth.wallet.core.util.WalletSignUtil
 import wiki.scene.eth.wallet.core.util.WalletUtils
 
 class MainActivity : AppCompatActivity() {
@@ -34,6 +35,9 @@ class MainActivity : AppCompatActivity() {
         verificationCode.verificationCode = "asdf"
 
         btnCheckHasWallet.setOnClickListener {
+//            val string = "{\"memo\":\"1\",\"to\":\"SET62sWobH6CyWMRjdyJRzhUspxPpNEx1P5M\",\"ctime\":\"1610503406402\",\"value\":\"1.0\",\"from\":\"SET5PrmA8nj32ioEUcw3DGgU8v5RtQUTSAGK\",\"assetsId\":\"1\",\"nonce\":\"1\"}"
+//            val sign = WalletSignUtil.sign(string, "4f2781b83269d87c23229f8bf7822a45cd055b40bc8bbb066876b45b0667299c")
+
 //            WalletUtils.hasWallet()
 //                    .subscribe({
 //                        showLog("是否有钱包：$it")
@@ -43,29 +47,30 @@ class MainActivity : AppCompatActivity() {
 
 //            val result = WalletSignUtil.sign("陈老板测试", "0xbf534b8857e824171f04528aeddea0990a5748b076e839b97ba91fb1010d7ef6")
 //            LogUtils.e(result)
-            Observable.create<Long> {
-                LogUtils.e("开始执行")
-                val hawkTime = System.currentTimeMillis()
-                for (i in 0..10000) {
-                    Hawk.put("xx${i}", "xxxx$i")
-                }
-                it.onNext(System.currentTimeMillis() - hawkTime)
-                it.onComplete()
-            }.changeIOThread()
-                    .subscribe {
-                        LogUtils.e("Hawk耗时：${it}")
-                    }
-            Observable.create<Long> {
-                val mmkvTime = System.currentTimeMillis()
-                for (i in 0..10000) {
-                    mmkv?.encode("xx${i}", "xxxx$i")
-                }
-                it.onNext(System.currentTimeMillis() - mmkvTime)
-                it.onComplete()
-            }.changeIOThread()
-                    .subscribe {
-                        LogUtils.e("MMKV耗时：${it}")
-                    }
+
+//            Observable.create<Long> {
+//                LogUtils.e("开始执行")
+//                val hawkTime = System.currentTimeMillis()
+//                for (i in 0..10000) {
+//                    Hawk.put("xx${i}", "xxxx$i")
+//                }
+//                it.onNext(System.currentTimeMillis() - hawkTime)
+//                it.onComplete()
+//            }.changeIOThread()
+//                    .subscribe {
+//                        LogUtils.e("Hawk耗时：${it}")
+//                    }
+//            Observable.create<Long> {
+//                val mmkvTime = System.currentTimeMillis()
+//                for (i in 0..10000) {
+//                    mmkv?.encode("xx${i}", "xxxx$i")
+//                }
+//                it.onNext(System.currentTimeMillis() - mmkvTime)
+//                it.onComplete()
+//            }.changeIOThread()
+//                    .subscribe {
+//                        LogUtils.e("MMKV耗时：${it}")
+//                    }
         }
 
         getCurrentWallet.setOnClickListener {
