@@ -3,6 +3,7 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-parcelize'
 apply plugin: 'kotlin-kapt'
 apply plugin: 'io.objectbox'
+apply plugin: 'maven-publish'
 //apply plugin: 'com.github.dcendents.android-maven'
 
 android {
@@ -36,7 +37,7 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation "io.reactivex.rxjava2:rxjava:2.2.20"
+    implementation "io.reactivex.rxjava2:rxjava:2.2.21"
     implementation 'io.reactivex.rxjava2:rxandroid:2.1.1'
     implementation 'org.web3j:core:4.6.0-android'
     implementation 'io.github.novacrypto:BIP39:2019.01.27'//用于生成助记词

@@ -1,2 +1,6 @@
 jdk:
   - openjdk11
+
+install:
+  - ./gradlew :EthWalletCore:build :EthWalletCore:publishToMavenLocal
+  - find . -name "*.aar"
