@@ -1,7 +1,7 @@
 package wiki.scene.eth.wallet.core.bean
 
 import android.os.Parcelable
-import kotlinx.android.parcel.Parcelize
+import kotlinx.parcelize.Parcelize
 import wiki.scene.eth.wallet.core.config.WalletType
 
 @Parcelize

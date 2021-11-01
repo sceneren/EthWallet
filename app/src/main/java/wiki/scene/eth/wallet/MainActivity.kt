@@ -16,6 +16,7 @@ import wiki.scene.eth.wallet.core.db.table.WalletAddressInfo
 import wiki.scene.eth.wallet.core.ext.changeIOThread
 import wiki.scene.eth.wallet.core.util.WalletSignUtil
 import wiki.scene.eth.wallet.core.util.WalletUtils
+import kotlin.random.Random
 
 class MainActivity : AppCompatActivity() {
     private val mmkv by lazy {
@@ -35,6 +36,9 @@ class MainActivity : AppCompatActivity() {
         verificationCode.verificationCode = "asdf"
 
         btnCheckHasWallet.setOnClickListener {
+            for (i in 0..100){
+                Log.e("xx",(Math.random() * 2).toInt().toString())
+            }
 //            val string = "{\"memo\":\"1\",\"to\":\"SET62sWobH6CyWMRjdyJRzhUspxPpNEx1P5M\",\"ctime\":\"1610503406402\",\"value\":\"1.0\",\"from\":\"SET5PrmA8nj32ioEUcw3DGgU8v5RtQUTSAGK\",\"assetsId\":\"1\",\"nonce\":\"1\"}"
 //            val sign = WalletSignUtil.sign(string, "4f2781b83269d87c23229f8bf7822a45cd055b40bc8bbb066876b45b0667299c")
 
